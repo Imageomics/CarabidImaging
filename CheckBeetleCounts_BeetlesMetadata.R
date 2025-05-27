@@ -1,0 +1,632 @@
+library(neonUtilities)
+library(readxl)
+library(dplyr)
+
+setwd("/fs/ess/PAS2136/CarabidImaging/")
+
+
+neon_token <- read.delim("~/NEON_Token_AE", header = FALSE)[1, 1]
+Beetle_dpID <- "DP1.10022.001"
+
+if (file.exists("./NEON_ExpertParaCombined.csv")) {
+  combined_data <- read.csv("./NEON_ExpertParaCombined.csv")
+} else {
+  neon_df <- neonUtilities::loadByProduct(
+    dpID = Beetle_dpID,
+    token = neon_token,
+    include.provisional = FALSE,
+    check.size = FALSE
+  )
+  
+  neon_para <- neon_df$bet_parataxonomistID
+  neon_expert <- neon_df$bet_expertTaxonomistIDProcessed
+  
+  neon_para_clean <- neon_para %>%
+    filter(!(individualID %in% neon_expert$individualID))
+  
+  common_cols <- intersect(names(neon_para_clean), names(neon_expert))
+  neon_para_common <- neon_para_clean[, common_cols]
+  neon_expert_common <- neon_expert[, common_cols]
+  
+  neon_para_common$ID_status <- "Para"
+  neon_expert_common$ID_status <- "Expert"
+  
+  combined_data <- bind_rows(neon_para_common, neon_expert_common)
+  combined_data$numbericID <- as.numeric(substr(combined_data$individualID, 
+                                                (nchar(combined_data$individualID) - 5), 
+                                                nchar(combined_data$individualID)))
+  
+  write.csv(combined_data, "./NEON_ExpertParaCombined.csv", row.names = FALSE)
+}
+
+firstpass_df <- as.data.frame(read_excel("./BeetleMetadata.xlsx", sheet = 1))
+firstpass_df$numbericID_1 <- as.numeric(firstpass_df$IndividualID_1)
+firstpass_df$numbericID_2 <- as.numeric(firstpass_df$IndividualID_2)
+firstpass_df$numbericID_n1 <- as.numeric(firstpass_df$IndividualID_n1)
+firstpass_df$numbericID_n <- as.numeric(firstpass_df$IndividualID_n)
+
+firstpass_df$IndividualID_1 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_1)
+firstpass_df$IndividualID_2 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_2)
+firstpass_df$IndividualID_n1 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_n1)
+firstpass_df$IndividualID_n <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_n)
+
+firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)
+firstpass_df<-subset(firstpass_df, yearCollected<=2022)
+
+dim(firstpass_df)
+dim(firstpass_df_provisional)
+# Convert date to year (fixing typo in your original: `as.numberic`)
+combined_data$yearCollected <- as.numeric(substr(combined_data$collectDate, 1, 4))
+combined_data$scientificName_Species<-gsub(r"{\s*\([^\)]+\)}","",as.character(combined_data$scientificName))
+combined_data$scientificName_Species<-gsub(" {2,}", " ", combined_data$scientificName_Species)
+combined_data$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", combined_data$scientificName_Species)
+table(combined_data$scientificName_Species)
+
+firstpass_df$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", firstpass_df$scientificName)
+
+firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName_Species), "-",
+                                firstpass_df$trayType, "tray-", 
+                                "Y", firstpass_df$yearCollected, "-",
+                                firstpass_df$IndividualID_1, "-", firstpass_df$IndividualID_n, ".png")
+
+#Read in data from Chandra
+occurrences<-read.csv("./occurrences.csv")
+determinations<-read.csv("./determinations.csv")
+shipments<-read.csv("./shipments.csv")
+
+dim(occurrences)
+head(occurrences)
+table(occurrences$availability, useNA = "ifany")
+
+combined_data_available<-combined_data %>%
+  filter((individualID %in% subset(occurrences, availability==1)$identifierValue))
+dim(occurrences)
+dim(combined_data_available)
+dim(combined_data_available)[1]/dim(combined_data)[1]
+
+# Placeholder for all matched cases
+matched_df <- data.frame()
+
+# Loop over all rows in firstpass_df
+for (i in 1:nrow(firstpass_df)) {
+  row <- firstpass_df[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
+  
+  num_found <- nrow(inImageQuery)
+  firstpass_df$NumberOfBeetlesInQuery[i] <- num_found
+  
+  if (num_found == row$NumberOfBeetles) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  } 
+}
+
+
+df_remainingmissmatch<-firstpass_df %>%
+  filter(!(newImageID %in% matched_df$imageID))
+dim(firstpass_df)
+dim(df_remainingmissmatch)[1]
+dim(table(matched_df$imageID))[1]
+dim(df_remainingmissmatch)[1]+dim(table(matched_df$imageID))[1]
+dim(table(matched_df$imageID))/dim(firstpass_df)[1]
+
+plot(df_remainingmissmatch$NumberOfBeetles, df_remainingmissmatch$NumberOfBeetlesInQuery)
+abline(a = 0, b = 1, col = "red") 
+
+#Sometimes an ID is recorded Incorrectly
+#To deal with that issue with minimal data loss we use the numbericID_2 and numbericID_n1
+#If these filters give the appropriate number of matches, we document the need to exclude the first or last beetle from the tray in the notes
+matched_df$notes<-""
+start<-dim(table(matched_df$imageID))[1]
+#First test for numbericID_2 to numbericID_n range
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_2 & 
+                           numbericID <= row$numbericID_n)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+
+    if (num_found == (row$NumberOfBeetles-1)) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery$notes<-"ID2 thru IDn"
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  }
+}
+#update running list of remaining mismatches
+df_remainingmissmatch<-df_remainingmissmatch %>%
+  filter(!(newImageID %in% matched_df$imageID))
+
+#Next test for numbericID_1 to numbericID_n1 range
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n1)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+  
+  if (num_found == (row$NumberOfBeetles-1)) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery$notes<-"ID1 thru IDn-1"
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  }
+}
+#update running list of remaining mismatches
+df_remainingmissmatch<-df_remainingmissmatch %>%
+  filter(!(newImageID %in% matched_df$imageID))
+
+#Finally test for numbericID_2 to numbericID_n1 range
+##We do this last on the remaining data because it omits 2 beetles instead of 1
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n1)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+  
+  if (num_found == (row$NumberOfBeetles-2)) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery$notes<-"ID2 thru IDn-1"
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  }
+}
+
+#update running list or remaining mismatches
+df_remainingmissmatch<-df_remainingmissmatch %>%
+  filter(!(newImageID %in% matched_df$imageID))
+
+
+start
+dim(table(matched_df$imageID))[1]
+dim(table(matched_df$imageID))/dim(firstpass_df)[1]
+table(matched_df$imageID,matched_df$notes)
+
+#If the Year is recorded wrong, then you will get 0 records for the filter. We deal with that in this query
+for (i in 1:nrow(df_remainingmissmatch)) {
+  # Skip this row if NumberOfBeetlesInQuery > 0
+  # if (df_remainingmissmatch$NumberOfBeetlesInQuery[i] > 0) {
+  #   next
+  # }
+  row <- df_remainingmissmatch[i, ]
+  # Filter matching individuals
+  ImageQueryID1 <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            individualID== row$IndividualID_1)
+  ImageQueryID2 <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            individualID== row$IndividualID_2)
+  ImageQueryIDN1 <- subset(combined_data_available, 
+                           scientificName_Species == row$scientificName_Species &
+                             individualID== row$IndividualID_n1)
+  ImageQueryIDN <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            individualID== row$IndividualID_n)
+  
+  # Collect all yearCollected values if present
+  years <- c(
+    if (nrow(ImageQueryID1) > 0) ImageQueryID1$yearCollected else NA,
+    if (nrow(ImageQueryID2) > 0) ImageQueryID2$yearCollected else NA,
+    if (nrow(ImageQueryIDN1) > 0) ImageQueryIDN1$yearCollected else NA,
+    if (nrow(ImageQueryIDN) > 0) ImageQueryIDN$yearCollected else NA
+  )
+  
+  print(paste0("Metadata recorded Year: ", row$yearCollected))
+  print(paste0("IndividualID_1 Year: ", years[1]))
+  print(paste0("IndividualID_2 Year: ", years[2]))
+  print(paste0("IndividualID_n1 Year: ", years[3]))
+  print(paste0("IndividualID_n Year: ", years[4]))
+  
+  # Check all are not NA and all the same
+  if (!any(is.na(years)) && length(unique(years)) == 1) {
+    new_year <- unique(years)
+    if (new_year == row$yearCollected) {
+      df_remainingmissmatch$checkYear<-"correct"
+    } else {
+    df_remainingmissmatch$checkYear<-"updated"
+    df_remainingmissmatch$Notes[i] <- paste0(
+      "yearCollected updated from ", row$yearCollected,
+      " to ", new_year,
+      " based on IndividualID queries"
+    )
+    df_remainingmissmatch$yearCollected[i] <- new_year 
+    }
+  }
+  else {
+    df_remainingmissmatch$checkYear<-"error"
+  }
+}
+
+start<-dim(table(matched_df$imageID))[1]
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+  
+  if (num_found == (row$NumberOfBeetles)) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery$notes <- row$Notes
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  }
+}
+start
+dim(table(matched_df$imageID))[1]
+dim(table(matched_df$imageID))/dim(firstpass_df)[1]
+
+df_remainingmissmatch<-df_remainingmissmatch %>%
+  filter(!(newImageID %in% matched_df$imageID))
+
+table(matched_df$notes)
+
+#Check Domain match up in the same way as Year
+for (i in 1:nrow(df_remainingmissmatch)) {
+  # Skip this row if NumberOfBeetlesInQuery > 0
+  # if (df_remainingmissmatch$NumberOfBeetlesInQuery[i] > 0) {
+  #   next
+  # }
+  row <- df_remainingmissmatch[i, ]
+  # Filter matching individuals
+  ImageQueryID1 <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            yearCollected == row$yearCollected &
+                            numbericID== row$numbericID_1)
+  ImageQueryID2 <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            yearCollected == row$yearCollected &
+                            numbericID== row$numbericID_2)
+  ImageQueryIDN1 <- subset(combined_data_available, 
+                           scientificName_Species == row$scientificName_Species &
+                             yearCollected == row$yearCollected &
+                             numbericID== row$numbericID_n1)
+  ImageQueryIDN <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            yearCollected == row$yearCollected &
+                            numbericID== row$numbericID_n)
+  
+  # Collect all domainID values if present
+  domains <- c(
+    if (nrow(ImageQueryID1) > 0) ImageQueryID1$domainID else NA,
+    if (nrow(ImageQueryID2) > 0) ImageQueryID2$domainID else NA,
+    if (nrow(ImageQueryIDN1) > 0) ImageQueryIDN1$domainID else NA,
+    if (nrow(ImageQueryIDN) > 0) ImageQueryIDN$domainID else NA
+  )
+  
+  print(paste0("Metadata recorded Year: ", row$domainID))
+  print(paste0("IndividualID_1 Year: ", domains[1]))
+  print(paste0("IndividualID_2 Year: ", domains[2]))
+  print(paste0("IndividualID_n1 Year: ", domains[3]))
+  print(paste0("IndividualID_n Year: ", domains[4]))
+  
+  # Check all are not NA and all the same
+  if (!any(is.na(domains)) && length(unique(domains)) == 1) {
+    new_domain <- unique(domains)
+    if (new_domain == row$domainID) {
+      df_remainingmissmatch$checkDomain<-"correct"
+    } else {
+      df_remainingmissmatch$checkDomain<-"updated"
+      df_remainingmissmatch$Notes[i] <- paste0(
+        "domainID updated from ", row$domainID,
+        " to ", new_domain,
+        " based on IndividualID queries"
+      )
+      df_remainingmissmatch$domainID[i] <- new_domain 
+    }
+  }
+  else {
+    df_remainingmissmatch$checkDomain<-"error"
+  }
+}
+
+table(df_remainingmissmatch$Notes)
+
+#If the domain was wrong, that means that the derrived IndividualID was also wrong
+#Because it contains the D## in the string. So we reassign those here
+df_remainingmissmatch$IndividualID_1 <- paste0("NEON.BET.", df_remainingmissmatch$domainID, ".", 
+                                               substr(df_remainingmissmatch$IndividualID_1, 14, 
+                                                      nchar(df_remainingmissmatch$IndividualID_1)))
+df_remainingmissmatch$IndividualID_2 <- paste0("NEON.BET.", df_remainingmissmatch$domainID, ".", 
+                                               substr(df_remainingmissmatch$IndividualID_2, 14, 
+                                                      nchar(df_remainingmissmatch$IndividualID_2)))
+df_remainingmissmatch$IndividualID_n1 <- paste0("NEON.BET.", df_remainingmissmatch$domainID, ".", 
+                                                substr(df_remainingmissmatch$IndividualID_n1, 14, 
+                                                       nchar(df_remainingmissmatch$IndividualID_n1)))
+df_remainingmissmatch$IndividualID_n <- paste0("NEON.BET.", df_remainingmissmatch$domainID, ".", 
+                                               substr(df_remainingmissmatch$IndividualID_n, 14, 
+                                                      nchar(df_remainingmissmatch$IndividualID_n)))
+
+
+start<-dim(table(matched_df$imageID))[1]
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+  
+  if (num_found == (row$NumberOfBeetles)) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery$notes <- row$Notes
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  }
+}
+start
+dim(table(matched_df$imageID))[1]
+
+plot(df_remainingmissmatch$NumberOfBeetlesInQuery~df_remainingmissmatch$NumberOfBeetles)
+abline(a = 0, b = 1, col = "red") 
+
+table(df_remainingmissmatch$NumberOfBeetlesInQuery-df_remainingmissmatch$NumberOfBeetles)
+
+#Check Expert/Para match up in the same way as Year
+for (i in 1:nrow(df_remainingmissmatch)) {
+  # Skip this row if NumberOfBeetlesInQuery > 0
+  # if (df_remainingmissmatch$NumberOfBeetlesInQuery[i] > 0) {
+  #   next
+  # }
+  row <- df_remainingmissmatch[i, ]
+  # Filter matching individuals
+  ImageQueryID1 <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            individualID== row$IndividualID_1)
+  ImageQueryID2 <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            individualID== row$IndividualID_2)
+  ImageQueryIDN1 <- subset(combined_data_available, 
+                           scientificName_Species == row$scientificName_Species &
+                             individualID== row$IndividualID_n1)
+  ImageQueryIDN <- subset(combined_data_available, 
+                          scientificName_Species == row$scientificName_Species &
+                            individualID== row$IndividualID_n)
+  
+  # Collect all ID_status values if present
+  ID_status <- c(
+    if (nrow(ImageQueryID1) > 0) ImageQueryID1$ID_status else NA,
+    if (nrow(ImageQueryID2) > 0) ImageQueryID2$ID_status else NA,
+    if (nrow(ImageQueryIDN1) > 0) ImageQueryIDN1$ID_status else NA,
+    if (nrow(ImageQueryIDN) > 0) ImageQueryIDN$ID_status else NA
+  )
+  
+  print(paste0("Metadata recorded: ", row$ExpertOrPara))
+  print(paste0("IndividualID_1: ", ID_status[1]))
+  print(paste0("IndividualID_2: ", ID_status[2]))
+  print(paste0("IndividualID_n1: ", ID_status[3]))
+  print(paste0("IndividualID_n: ", ID_status[4]))
+  
+  # Check all are not NA and all the same
+  if (!any(is.na(ID_status)) && length(unique(ID_status)) == 1) {
+    new_ID <- unique(ID_status)
+    if (new_ID == row$ExpertOrPara) {
+      df_remainingmissmatch$checkIDStatus<-"correct"
+    } else {
+      df_remainingmissmatch$checkIDStatus<-"updated"
+      df_remainingmissmatch$Notes[i] <- paste0(
+        "ExpertOrPara updated from ", row$ExpertOrPara,
+        " to ", new_domain,
+        " based on IndividualID queries"
+      )
+      df_remainingmissmatch$ExpertOrPara[i] <- new_ID 
+    }
+  }
+  else {
+    df_remainingmissmatch$checkIDStatus<-"error"
+  }
+}
+
+#Boxes are often grouped by scientificNameAuthorship For all those remaining, we will break it out by idntifier or source material.
+start<-dim(table(matched_df$imageID))[1]
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
+  fineScientificNameAuthorship <- subset(combined_data_available, 
+                                         domainID == row$domainID &
+                                           scientificName_Species == row$scientificName_Species &
+                                           yearCollected == row$yearCollected &
+                                           numbericID == row$numbericID_1)$scientificNameAuthorship
+  print(table(inImageQuery$scientificNameAuthorship))
+  print(paste0("ID1, indicates authorship: ",fineScientificNameAuthorship))
+  inImageQuery<-subset(inImageQuery, scientificNameAuthorship==fineScientificNameAuthorship)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+  df_remainingmissmatch$Notes[i] <- "query refined by scientificNameAuthorship"
+  
+  if (num_found == row$NumberOfBeetles) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery$notes <- row$Notes
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  } 
+}
+start
+dim(table(matched_df$imageID))[1]
+
+df_remainingmissmatch<-df_remainingmissmatch %>%
+  filter(!(newImageID %in% matched_df$imageID))
+
+#After scientificNameAuthorship refernce material "identificationReferences" is the next big grouping.
+start<-dim(table(matched_df$imageID))[1]
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
+  fineScientificNameAuthorship <- subset(combined_data_available, 
+                                         domainID == row$domainID &
+                                           scientificName_Species == row$scientificName_Species &
+                                           yearCollected == row$yearCollected &
+                                           numbericID == row$numbericID_1)$identificationReferences
+  print(table(inImageQuery$identificationReferences))
+  print(paste0("ID1, indicates authorship: ",fineScientificNameAuthorship))
+  inImageQuery<-subset(inImageQuery, identificationReferences==fineScientificNameAuthorship)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+  df_remainingmissmatch$Notes[i] <- "query refined by identificationReferences"
+  
+  if (num_found == row$NumberOfBeetles) {
+    image_id <- row$newImageID
+    inImageQuery$imageID <- image_id
+    inImageQuery$notes <- row$Notes
+    inImageQuery<-inImageQuery %>%
+      arrange(individualID)
+    
+    matched_df <- rbind(matched_df, inImageQuery)
+  } 
+}
+start
+
+
+# Save matched dataset to file
+write.csv(matched_df, "./BeetleMetadataABTraysIndividuals.csv", row.names = FALSE)
+
+dim(table(matched_df$imageID))
+dim(firstpass_df)[1]
+dim(table(matched_df$imageID))/dim(firstpass_df)[1]
+
+head(firstpass_df)
+dim(firstpass_df)
+head(firstpass_df[,-c(17:20)])
+firstpass_df<-firstpass_df[,-c(17:20)]
+write.csv(firstpass_df, "./BeetleMetadataABTrays.csv", row.names = FALSE)
+
+
+#Write out datasets for images that dont link to be manually checked. 
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  # Filter matching individuals
+  inImageQuery <- subset(combined_data_available, 
+                         domainID == row$domainID &
+                           scientificName_Species == row$scientificName_Species &
+                           yearCollected == row$yearCollected &
+                           numbericID >= row$numbericID_1 & 
+                           numbericID <= row$numbericID_n)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
+  
+  num_found <- nrow(inImageQuery)
+  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+  
+  if (num_found > row$NumberOfBeetles) {
+    inImageQuery$NumberOfBeetlesInTray <- row$NumberOfBeetles
+    
+    outfile <- paste0("./NEONIndividualLinkageChecks/QueryOver/CHECK_",
+                      gsub(" ", "_", row$scientificName), "-",
+                      row$trayType, "tray-",
+                      "Y", row$yearCollected, "-",
+                      row$IndividualID_1, "-", row$IndividualID_n, ".csv")
+    
+    write.csv(inImageQuery %>%
+                arrange(individualID), outfile, row.names = FALSE)
+  } else {
+    if (nrow(inImageQuery) == 0) {
+      # Create a placeholder with appropriate columns (e.g., from combined_data)
+      inImageQuery <- combined_data_available[0, ]  # creates a blank df with same structure
+      outfile <- paste0("./NEONIndividualLinkageChecks/QueryZero/CHECK_",
+                        gsub(" ", "_", row$scientificName), "-",
+                        row$trayType, "tray-",
+                        "Y", row$yearCollected, "-",
+                        row$IndividualID_1, "-", row$IndividualID_n, ".csv")
+
+      write.csv(inImageQuery %>%
+                  arrange(individualID), outfile, row.names = FALSE)
+    } else {
+      inImageQuery$NumberOfBeetlesInTray <- row$NumberOfBeetles
+      
+      outfile <- paste0("./NEONIndividualLinkageChecks/QueryUnder/CHECK_",
+                        gsub(" ", "_", row$scientificName), "-",
+                        row$trayType, "tray-",
+                        "Y", row$yearCollected, "-",
+                        row$IndividualID_1, "-", row$IndividualID_n, ".csv")
+
+      write.csv(inImageQuery %>%
+                  arrange(individualID), outfile, row.names = FALSE)
+    }
+  }
+}
