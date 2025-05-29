@@ -2,6 +2,7 @@
 library(neonUtilities)
 library(readxl)
 library(dplyr)
+library(tibble)
 
 
 # Set working directory to CarabidImaging project
@@ -136,6 +137,7 @@ for (i in 1:nrow(firstpass_df)) {
     inImageQuery<-inImageQuery %>% #Order by individualID, this is the box order in this case
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery)) #assign order values sequentially
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
@@ -169,6 +171,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                            yearCollected == row$yearCollected &
                            numbericID >= row$numbericID_2 & 
                            numbericID <= row$numbericID_n)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
   
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
@@ -180,6 +184,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
     inImageQuery$Order<-c(2:(nrow(inImageQuery)+1)) #Account for droping the first beetle
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -199,6 +204,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                            yearCollected == row$yearCollected &
                            numbericID >= row$numbericID_1 & 
                            numbericID <= row$numbericID_n1)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
   
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
@@ -210,6 +217,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
     inImageQuery$Order<-c(1:(nrow(inImageQuery)))
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -230,6 +238,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                            yearCollected == row$yearCollected &
                            numbericID >= row$numbericID_1 & 
                            numbericID <= row$numbericID_n1)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
   
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
@@ -240,7 +250,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes<-"ID2 thru IDn-1"
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
-    inImageQuery$Order<-c(2:(nrow(inImageQuery)))
+    inImageQuery$Order<-c(2:(nrow(inImageQuery)+1))
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -322,6 +333,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                            yearCollected == row$yearCollected &
                            numbericID >= row$numbericID_1 & 
                            numbericID <= row$numbericID_n)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
   
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
@@ -333,6 +346,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -434,6 +448,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                            yearCollected == row$yearCollected &
                            numbericID >= row$numbericID_1 & 
                            numbericID <= row$numbericID_n)
+  #Filter by ID Status
+  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
   
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
@@ -445,6 +461,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -501,7 +518,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       df_remainingmissmatch$checkIDStatus<-"updated"
       df_remainingmissmatch$Notes[i] <- paste0(
         "ExpertOrPara updated from ", row$ExpertOrPara,
-        " to ", new_domain,
+        " to ", new_ID,
         " based on IndividualID queries"
       )
       df_remainingmissmatch$ExpertOrPara[i] <- new_ID 
@@ -511,6 +528,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     df_remainingmissmatch$checkIDStatus<-"error"
   }
 }
+
+table(df_remainingmissmatch$Notes)
 
 #Boxes are often grouped by scientificNameAuthorship For all those remaining, we will break it out by idntifier or source material.
 start<-dim(table(matched_df$imageID))[1]
@@ -526,6 +545,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                            numbericID <= row$numbericID_n)
   #Filter by ID Status
   inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
+
   fineScientificNameAuthorship <- subset(combined_data_available, 
                                          domainID == row$domainID &
                                            scientificName_Species == row$scientificName_Species &
@@ -546,6 +566,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
@@ -590,12 +611,13 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
+    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
 }
 start
-
+dim(table(matched_df$imageID))[1]
 
 # Save matched dataset to file
 write.csv(matched_df, "./BeetleMetadataABTraysIndividuals.csv", row.names = FALSE)
@@ -606,8 +628,6 @@ dim(table(matched_df$imageID))/dim(firstpass_df)[1]
 
 head(firstpass_df)
 dim(firstpass_df)
-head(firstpass_df[,-c(17:20)])
-firstpass_df<-firstpass_df[,-c(17:20)]
 write.csv(firstpass_df, "./BeetleMetadataABTrays.csv", row.names = FALSE)
 
 
