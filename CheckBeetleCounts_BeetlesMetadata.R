@@ -1,13 +1,19 @@
+#### Setup and Package Loading ####
 library(neonUtilities)
 library(readxl)
 library(dplyr)
 
+
+# Set working directory to CarabidImaging project
 setwd("/fs/ess/PAS2136/CarabidImaging/")
 
+#### Load NEON Token and Data Product ####
 
+# Read NEON token from file
 neon_token <- read.delim("~/NEON_Token_AE", header = FALSE)[1, 1]
 Beetle_dpID <- "DP1.10022.001"
 
+# If already combined data exists, load it, else fetch and combine
 if (file.exists("./NEON_ExpertParaCombined.csv")) {
   combined_data <- read.csv("./NEON_ExpertParaCombined.csv")
 } else {
@@ -39,24 +45,36 @@ if (file.exists("./NEON_ExpertParaCombined.csv")) {
   write.csv(combined_data, "./NEON_ExpertParaCombined.csv", row.names = FALSE)
 }
 
+#### Load and Format Manual Metadata ####
+
+# Load image tray metadata
 firstpass_df <- as.data.frame(read_excel("./BeetleMetadata.xlsx", sheet = 1))
+
+# Create numeric IDs for filtering
 firstpass_df$numbericID_1 <- as.numeric(firstpass_df$IndividualID_1)
 firstpass_df$numbericID_2 <- as.numeric(firstpass_df$IndividualID_2)
 firstpass_df$numbericID_n1 <- as.numeric(firstpass_df$IndividualID_n1)
 firstpass_df$numbericID_n <- as.numeric(firstpass_df$IndividualID_n)
 
+# Reformat individual IDs with NEON format
 firstpass_df$IndividualID_1 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_1)
 firstpass_df$IndividualID_2 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_2)
 firstpass_df$IndividualID_n1 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_n1)
 firstpass_df$IndividualID_n <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_n)
 
+# Split by provisional and finalized records
 firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)
 firstpass_df<-subset(firstpass_df, yearCollected<=2022)
 
 dim(firstpass_df)
 dim(firstpass_df_provisional)
-# Convert date to year (fixing typo in your original: `as.numberic`)
+
+# Add year to combined_data
 combined_data$yearCollected <- as.numeric(substr(combined_data$collectDate, 1, 4))
+
+#### Clean and Extract Taxonomic Names ####
+
+# Extract genus and species only from scientific name
 combined_data$scientificName_Species<-gsub(r"{\s*\([^\)]+\)}","",as.character(combined_data$scientificName))
 combined_data$scientificName_Species<-gsub(" {2,}", " ", combined_data$scientificName_Species)
 combined_data$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", combined_data$scientificName_Species)
@@ -64,12 +82,16 @@ table(combined_data$scientificName_Species)
 
 firstpass_df$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", firstpass_df$scientificName)
 
+#### Create Image IDs ####
+
+# Concatenate metadata fields to generate unique image IDs
 firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName_Species), "-",
                                 firstpass_df$trayType, "tray-", 
                                 "Y", firstpass_df$yearCollected, "-",
                                 firstpass_df$IndividualID_1, "-", firstpass_df$IndividualID_n, ".png")
 
-#Read in data from Chandra
+#### Read External Specimen Availability Metadata ####
+#Read from Chandra
 occurrences<-read.csv("./occurrences.csv")
 determinations<-read.csv("./determinations.csv")
 shipments<-read.csv("./shipments.csv")
@@ -78,11 +100,14 @@ dim(occurrences)
 head(occurrences)
 table(occurrences$availability, useNA = "ifany")
 
+# Filter NEON API data to only include available specimens
 combined_data_available<-combined_data %>%
   filter((individualID %in% subset(occurrences, availability==1)$identifierValue))
 dim(occurrences)
 dim(combined_data_available)
 dim(combined_data_available)[1]/dim(combined_data)[1]
+
+#### Image Matching by ID Range, Domain, Year, Species, and Para vs Expert Taxonomis ID ####
 
 # Placeholder for all matched cases
 matched_df <- data.frame()
@@ -98,17 +123,19 @@ for (i in 1:nrow(firstpass_df)) {
                            yearCollected == row$yearCollected &
                            numbericID >= row$numbericID_1 & 
                            numbericID <= row$numbericID_n)
-  #Filter by ID Status
+  #Filter by ID Status (ExpertOrPara)
   inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
   
   num_found <- nrow(inImageQuery)
   firstpass_df$NumberOfBeetlesInQuery[i] <- num_found
   
+  # If the query yields the correct number of individuals, we add this data into a growing dataset
   if (num_found == row$NumberOfBeetles) {
     image_id <- row$newImageID
     inImageQuery$imageID <- image_id
-    inImageQuery<-inImageQuery %>%
+    inImageQuery<-inImageQuery %>% #Order by individualID, this is the box order in this case
       arrange(individualID)
+    inImageQuery$Order<-c(1:nrow(inImageQuery)) #assign order values sequentially
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
@@ -152,6 +179,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes<-"ID2 thru IDn"
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
+    inImageQuery$Order<-c(2:(nrow(inImageQuery)+1)) #Account for droping the first beetle
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -181,6 +209,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes<-"ID1 thru IDn-1"
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
+    inImageQuery$Order<-c(1:(nrow(inImageQuery)))
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -211,6 +240,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes<-"ID2 thru IDn-1"
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
+    inImageQuery$Order<-c(2:(nrow(inImageQuery)))
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -302,6 +332,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes <- row$Notes
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
+    inImageQuery$Order<-c(1:nrow(inImageQuery))
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -413,6 +444,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes <- row$Notes
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
+    inImageQuery$Order<-c(1:nrow(inImageQuery))
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -513,6 +545,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes <- row$Notes
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
+    inImageQuery$Order<-c(1:nrow(inImageQuery))
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
@@ -556,6 +589,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes <- row$Notes
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
+    inImageQuery$Order<-c(1:nrow(inImageQuery))
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
@@ -602,6 +636,9 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                       "Y", row$yearCollected, "-",
                       row$IndividualID_1, "-", row$IndividualID_n, ".csv")
     
+    inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
+    
+    
     write.csv(inImageQuery %>%
                 arrange(individualID), outfile, row.names = FALSE)
   } else {
@@ -613,6 +650,9 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                         row$trayType, "tray-",
                         "Y", row$yearCollected, "-",
                         row$IndividualID_1, "-", row$IndividualID_n, ".csv")
+      
+      inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
+      inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
 
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
@@ -625,8 +665,67 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                         "Y", row$yearCollected, "-",
                         row$IndividualID_1, "-", row$IndividualID_n, ".csv")
 
+      inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
+      inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
+      
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
     }
   }
 }
+
+#This is an iterative process, and files that have been checked are in
+# /NEONIndividualLinkageChecks/QueryOver/Checked. Here we remove the csv files that 
+#Have already been manually quality controlled so we know what is left.
+
+
+#First we do this for Querys with too many entries
+# Define directories
+csv_dir <- "/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver"
+xlsx_dir <- file.path(csv_dir, "Checked")
+
+# List .csv and .xlsx files
+csv_files <- list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE)
+xlsx_files <- list.files(xlsx_dir, pattern = "\\.xlsx$", full.names = FALSE)
+
+# Get base names (without extensions) of the xlsx files
+xlsx_basenames <- tools::file_path_sans_ext(xlsx_files)
+
+# Filter csv files to identify which to delete
+csv_to_remove <- csv_files[
+  tools::file_path_sans_ext(basename(csv_files)) %in% xlsx_basenames
+]
+
+# Confirm what will be deleted
+cat("The following CSV files will be removed:\n")
+print(csv_to_remove)
+
+# OPTIONAL: Delete the files
+# Be careful with this step; uncomment to activate deletion
+file.remove(csv_to_remove)
+
+#Then we do this for Querys with too few entries
+# Define directories
+csv_dir <- "/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryUnder"
+xlsx_dir <- file.path(csv_dir, "Checked")
+
+# List .csv and .xlsx files
+csv_files <- list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE)
+xlsx_files <- list.files(xlsx_dir, pattern = "\\.xlsx$", full.names = FALSE)
+
+# Get base names (without extensions) of the xlsx files
+xlsx_basenames <- tools::file_path_sans_ext(xlsx_files)
+
+# Filter csv files to identify which to delete
+csv_to_remove <- csv_files[
+  tools::file_path_sans_ext(basename(csv_files)) %in% xlsx_basenames
+]
+
+# Confirm what will be deleted
+cat("The following CSV files will be removed:\n")
+print(csv_to_remove)
+
+# OPTIONAL: Delete the files
+# Be careful with this step; uncomment to activate deletion
+file.remove(csv_to_remove)
+
