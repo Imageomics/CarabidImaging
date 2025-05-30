@@ -1,10 +1,6 @@
 # Carabid Imaging
 __Description of work__
 
-# Backing up data
-`rclone.sh`
-> This script automates the rclone copying from Google Drive to OSC. Students at the biorepository have contributor access to upload images to the Google Drive at the end of every day, from there, they can be copied to OSC
-
 Each folder in this directory (FirstPass, ABTrays, CTrays, Belitz, and SmallBeetles) refers to a distinct data source and contains code to do all necessary preprocessing of the images provided by that data source. 
 
 # Scripts for each data source:
@@ -32,6 +28,9 @@ Students take the file `catalog_firstPass_renamedMetadataTemplate.csv` output by
 > This outputs lists of the correct length to `catalog_firstPass_renamedIndividualsMetadata.csv` and lists that have either too many or too few records to `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver` or `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryUnder` respectively for students to go through manually and correct the lists.
 
 ## ABTrays
+`CheckBeetleCounts.R`
+> Sheet 1 of `BeetleMetadata.xlsx` is used to query the NEON ground beetle record and the NEON Availability data to try and generate lists of individuals contained in each image.
+> This outputs lists of the correct length to `	BeetleMetadataABTraysIndividuals.csv` and lists that have either too many or too few records to `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver` or `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryUnder` respectively for students to go through manually and correct the lists.
 
 ## CTrays
 
@@ -40,7 +39,9 @@ Students take the file `catalog_firstPass_renamedMetadataTemplate.csv` output by
 ## SmallBeetles
 
 
+## Backing up data
+`rclone.sh`
+> This script automates the rclone copying from Google Drive to OSC. Students at the biorepository have contributor access to upload images to the Google Drive at the end of every day, from there, they can be copied to OSC
 
-
-# Pulling all the Data Sources together
+## Pulling all the Data Sources together
 IndividualsFromAllSources.R
