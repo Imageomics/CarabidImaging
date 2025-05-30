@@ -70,8 +70,8 @@ QueryUnderChecked_df$notes<-"QueryOver, Manually Checked"
 
 
 #Individuals that link well from Michael Beltiz's Images
-Belitz<-read.csv()
-Belitz$imagePath<="/Images/FinalImages/ABTrays"
+#Belitz<-read.csv()
+#Belitz$imagePath<="/Images/FinalImages/ABTrays"
 
 ####Merge all of the sources together####
 #Find overlapping columns
@@ -98,4 +98,4 @@ all_out<-rbind(AB_matched_df[, common_all],
 dim(all_out)
 str(all_out)
 
-write.csv()
+write.csv(all_out, "./allIndividuals.csv")
