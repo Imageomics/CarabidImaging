@@ -1,9 +1,17 @@
+#### Setup and Package Loading ####
 library(neonUtilities)
 library(readxl)
 library(dplyr)
 
+dataset<-"firstPass"
+finalDataset <- "ABTrays"
+
+# Set working directory to CarabidImaging project
 setwd("/fs/ess/PAS2136/CarabidImaging/")
 
+#### Load NEON Token and Data Product ####
+
+# Read NEON token from file
 neon_token <- read.delim("~/NEON_Token_AE", header = FALSE)[1, 1]
 Beetle_dpID <- "DP1.10022.001"
 
@@ -90,8 +98,12 @@ table(combined_data$scientificName_Species)
 
 firstpass_df$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", firstpass_df$scientificName)
 
+firstpass_df
 #### Create Image IDs ####
+#Make the "newImageID" from the last pass of renameing into the "imageID"
+firstpass_df$imageID<-firstpass_df$newImageID
 
+# Rederive file names to update a second time
 # Concatenate metadata fields to generate unique image IDs
 firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName_Species), "-",
                                 firstpass_df$trayType, "tray-", 
@@ -636,6 +648,7 @@ dim(table(matched_df$imageID))/dim(firstpass_df)[1]
 
 head(firstpass_df)
 dim(firstpass_df)
+
 write.csv(firstpass_df, "./catalog_firstPass_renamedMetadataClean.csv", row.names = FALSE)
 
 
@@ -665,7 +678,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                       row$IndividualID_1, "-", row$IndividualID_n, ".csv")
     
     inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
-    inImageQuery$imagePath<="/Images/FinalImages/ABTrays"
+    inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
     
     
     write.csv(inImageQuery %>%
@@ -682,7 +695,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
-      inImageQuery$imagePath<="/Images/FinalImages/ABTrays"
       
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
@@ -697,7 +709,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
-      inImageQuery$imagePath<="/Images/FinalImages/ABTrays"
+      inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
       
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
@@ -759,3 +771,4 @@ print(csv_to_remove)
 # OPTIONAL: Delete the files
 # Be careful with this step; uncomment to activate deletion
 file.remove(csv_to_remove)
+
