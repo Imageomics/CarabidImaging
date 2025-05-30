@@ -4,6 +4,8 @@ library(readxl)
 library(dplyr)
 library(tibble)
 
+dataset<-"ABTrays"
+finalDataset <- "ABTrays"
 
 # Set working directory to CarabidImaging project
 setwd("/fs/ess/PAS2136/CarabidImaging/")
@@ -69,6 +71,9 @@ firstpass_df<-subset(firstpass_df, yearCollected<=2022)
 
 dim(firstpass_df)
 dim(firstpass_df_provisional)
+
+firstpass_df$imageID<-sub("\\.CR3$", "", firstpass_df$imageID)
+firstpass_df$imageID<-paste0(firstpass_df$imageID,".png")
 
 # Add year to combined_data
 combined_data$yearCollected <- as.numeric(substr(combined_data$collectDate, 1, 4))
@@ -620,7 +625,7 @@ start
 dim(table(matched_df$imageID))[1]
 
 # Save matched dataset to file
-write.csv(matched_df, "./BeetleMetadataABTraysIndividuals.csv", row.names = FALSE)
+write.csv(matched_df, paste0("./BeetleMetadata",dataset,"Individuals.csv"), row.names = FALSE)
 
 dim(table(matched_df$imageID))
 dim(firstpass_df)[1]
@@ -628,7 +633,13 @@ dim(table(matched_df$imageID))/dim(firstpass_df)[1]
 
 head(firstpass_df)
 dim(firstpass_df)
-write.csv(firstpass_df, "./BeetleMetadataABTrays.csv", row.names = FALSE)
+
+firstpass_out_df<-firstpass_df %>%
+  filter((newImageID %in% matched_df$imageID))
+
+dim(firstpass_out_df)
+
+write.csv(firstpass_df, paste0("./BeetleMetadata",dataset,".csv"), row.names = FALSE)
 
 
 #Write out datasets for images that dont link to be manually checked. 
@@ -657,7 +668,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                       row$IndividualID_1, "-", row$IndividualID_n, ".csv")
     
     inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
-    inImageQuery$imagePath<="/Images/FinalImages/ABTrays"
+    inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
     
     
     write.csv(inImageQuery %>%
@@ -674,7 +685,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
-      inImageQuery$imagePath<="/Images/FinalImages/ABTrays"
 
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
@@ -689,7 +699,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
 
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
-      inImageQuery$imagePath<="/Images/FinalImages/ABTrays"
+      inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
       
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
