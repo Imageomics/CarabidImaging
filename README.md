@@ -29,7 +29,17 @@ Students take the file `catalog_firstPass_renamedMetadataTemplate.csv` output by
 
 `CheckBeetleCounts.R`
 > `catalog_firstPass_renamedMetadata.xlsx` is used to query the NEON ground beetle record and the NEON Availability data to try and generate lists of individuals contained in each image.
-> This outputs lists of the correct length to `catalog_firstPass_renamedIndividualsMetadata.csv` and lists that have either too many or too few records to `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver` or `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryUnder` respectively for students to go through manually and correct the lists. 
+> This outputs lists of the correct length to `catalog_firstPass_renamedIndividualsMetadata.csv` and lists that have either too many or too few records to `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver` or `/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryUnder` respectively for students to go through manually and correct the lists.
+
+## ABTrays
+
+## CTrays
+
+## Belitz
+
+## SmallBeetles
+
+
 
 
 # Pulling all the Data Sources together
