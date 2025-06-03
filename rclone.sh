@@ -4,7 +4,7 @@
 set -e
 
 # Set remote name and path
-REMOTE="GoogleDrive_NEONBeetle"
+REMOTE="GoogleDrive_NEONBeetle2"
 
 # Set local destination
 LOCAL_DIR="/fs/ess/PAS2136/CarabidImaging/" 
