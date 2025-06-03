@@ -673,6 +673,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                       "Y", row$yearCollected, "-",
                       row$IndividualID_1, "-", row$IndividualID_n, ".csv")
     
+    inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
     inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
     inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
     
