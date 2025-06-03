@@ -7,10 +7,10 @@ setwd("/fs/ess/PAS2136/CarabidImaging/")
 
 #Individuals that link nicely from images from AB Trays
 AB_matched_df<-read.csv("./BeetleMetadataABTraysIndividuals.csv")
-AB_matched_df$imagePath<="/Images/FinalImages/ABTrays"
+AB_matched_df$imagePath<-"/Images/FinalImages/ABTrays"
 #Individuals that link nicely from images from first pass
 FirstPass_matched_df<-read.csv("./catalog_firstPass_renamedIndividualsMetadata.csv")
-FirstPass_matched_df$imagePath<="/Images/FinalImages/ABTrays"
+FirstPass_matched_df$imagePath<-"/Images/FinalImages/ABTrays"
 
 #Individuals that link well from Michael Beltiz's Images
 #Belitz<-read.csv()
@@ -34,8 +34,7 @@ symdiff(common_cols, names(Manual_matched_df))
 all_out<-rbind(AB_matched_df[, common_all], 
                FirstPass_matched_df[, common_all], 
                Manual_matched_df[, common_all])
-
-dim(all_out)
 str(all_out)
+dim(all_out)
 
-write.csv(all_out, "./allIndividuals.csv")
+write.csv(all_out, "./allIndividuals.csv", row.names = FALSE)
