@@ -13,7 +13,7 @@ DEST_DIR="$WORKDIR/Images/FinalImages/ABTrays"
 mkdir -p "$DEST_DIR"
 
 # Skip the header and process CSV lines
-tail -n +2 "$CSV" | awk -F',' '{print $20","$1}' | while IFS=',' read -r imageID newImageID; do
+tail -n +2 "$CSV" | awk -F',' '{print $21","$1}' | while IFS=',' read -r imageID newImageID; do
     # Trim whitespace (optional but good practice)
     imageID=$(echo "$imageID" | xargs)
     newImageID=$(echo "$newImageID" | xargs)
