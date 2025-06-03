@@ -10,13 +10,13 @@ These images were collected by NEON and have some issues with resolution and no 
 The workflow for this repository is broken into iterative chunks:
 ### Renaming and filtering initial data
 `renameImagesWorkflow.sh`
-> This shell script runs the entire first renaming workflow. It kicks off the slurm submission for the First Pass Images Preprocessing, including `generateFirstImageRenaming.R` and `copyImagesWithFirstRename.sh`
+- This shell script runs the entire first renaming workflow. It kicks off the slurm submission for the First Pass Images Preprocessing, including `generateFirstImageRenaming.R` and `copyImagesWithFirstRename.sh`
 
-`generateFirstImageRenaming.R`
-> Takes inputs from the first pass student metadata entry and annotations to generate a list of files deemed "good quality". It generates output lists of original files, renamed file names, and a metadata template for the next pass of student annotations.
+  - `generateFirstImageRenaming.R`
+  - Takes inputs from the first pass student metadata entry and annotations to generate a list of files deemed "good quality". It generates output lists of original files, renamed file names, and a metadata template for the next pass of student annotations.
 
-`copyImagesWithFirstRename.sh`
-> Copies "good" images from the first pass collection, renames them, and places them in a new directory based on the outputs of the R script above.
+  - `copyImagesWithFirstRename.sh`
+  - Copies "good" images from the first pass collection, renames them, and places them in a new directory based on the outputs of the R script above.
 
 ### Manual metadata transcription
 Students take the file `catalog_firstPass_renamedMetadataTemplate.csv` output by `generateFirstImageRenaming.R`. In this step, they check the physical ordering of the tray to ensure that individuals are arranged sequentially and enter all necessary metadata for image processing and linking to individual beetle records into a Google sheet. The entered metadata is stored as `catalog_firstPass_renamedMetadata.xlsx`
