@@ -2,6 +2,7 @@
 library(neonUtilities)
 library(readxl)
 library(dplyr)
+library(tibble)
 
 dataset<-"firstPass"
 finalDataset <- "ABTrays"
@@ -67,17 +68,13 @@ head(firstpass_df)
 
 #Filter out records that have not been addressed yet
 firstpass_df<-subset(firstpass_df, !is.na(Marked))
+table(firstpass_df$reimageNeeded)
+dim(firstpass_df)
+firstpass_df<-subset(firstpass_df, is.na(reimageNeeded))
+table(firstpass_df$reimageNeeded)
+dim(firstpass_df)
 
 table(firstpass_df$Notes)
-#deal with notes manually
-notes<-subset(firstpass_df, !is.na(Notes))
-notes[,"Notes"]
-merge_back<-notes[c(1,6),]
-merge_back[,"Notes"]
-
-#take all the entries with no notes
-firstpass_df<-subset(firstpass_df, is.na(Notes))
-firstpass_df<-rbind(firstpass_df, merge_back)
 
 # Split by provisional and finalized records
 firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)
@@ -98,7 +95,6 @@ table(combined_data$scientificName_Species)
 
 firstpass_df$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", firstpass_df$scientificName)
 
-firstpass_df
 #### Create Image IDs ####
 #Make the "newImageID" from the last pass of renameing into the "imageID"
 firstpass_df$imageID<-firstpass_df$newImageID
@@ -269,7 +265,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     inImageQuery$notes<-"ID2 thru IDn-1"
     inImageQuery<-inImageQuery %>%
       arrange(individualID)
-    inImageQuery$Order<-c(2:(nrow(inImageQuery)))
+    inImageQuery$Order<-c(2:(nrow(inImageQuery)+1))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
     
     matched_df <- rbind(matched_df, inImageQuery)
@@ -595,6 +591,8 @@ dim(table(matched_df$imageID))[1]
 
 df_remainingmissmatch<-df_remainingmissmatch %>%
   filter(!(newImageID %in% matched_df$imageID))
+
+dim(df_remainingmissmatch)
 
 #After scientificNameAuthorship refernce material "identificationReferences" is the next big grouping.
 start<-dim(table(matched_df$imageID))[1]

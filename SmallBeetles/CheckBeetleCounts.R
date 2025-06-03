@@ -74,7 +74,7 @@ firstpass_df<-subset(firstpass_df, yearCollected<=2022)
 dim(firstpass_df)
 dim(firstpass_df_provisional)
 
-firstpass_df$imageID<-paste0(firstpass_df$imageID,".png")
+firstpass_df$imageID<-paste0(firstpass_df$imageID,".jpg")
 
 # Add year to combined_data
 combined_data$yearCollected <- as.numeric(substr(combined_data$collectDate, 1, 4))
@@ -129,6 +129,7 @@ for (i in 1:nrow(firstpass_df)) {
     #Filter by ID Status (ExpertOrPara)
     if (nrow(inImageQuery)==0) {
       print(paste0(row$newImageID," No record by ID"))
+      firstpass_df[i, ]$Notes <-"No record by ID"
       next
       }
     # If the query yields the correct number of individuals, we add this data into a growing dataset
@@ -140,8 +141,8 @@ for (i in 1:nrow(firstpass_df)) {
       
       matched_df <- rbind(matched_df, inImageQuery)
     } else {
-      print(paste0(row$newImageID," Species Mismatch"))
-      print(paste0(row$scientificName_Species," entered,", inImageQuery$scientificName_Species, "queried"))
+      firstpass_df[i, ]$Notes <-"Species Mismatch"
+      print(paste0("Species Mismatch: ",row$scientificName_Species," entered,", inImageQuery$scientificName_Species, " queried"))
     }
   } else { 
     next 

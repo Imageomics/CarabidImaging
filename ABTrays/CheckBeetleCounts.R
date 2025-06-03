@@ -736,6 +736,7 @@ print(csv_to_remove)
 # OPTIONAL: Delete the files
 # Be careful with this step; uncomment to activate deletion
 file.remove(csv_to_remove)
+length(list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE))
 
 #Then we do this for Querys with too few entries
 # Define directories
@@ -761,4 +762,5 @@ print(csv_to_remove)
 # OPTIONAL: Delete the files
 # Be careful with this step; uncomment to activate deletion
 file.remove(csv_to_remove)
+length(list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE))
 
