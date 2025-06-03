@@ -57,6 +57,10 @@ Processing the images and data from the A and B Trays imaged by students at the 
     - These output lists are manually moved over to a Google Drive for students to check on-site at the Biorepository
     - Since this process is iterative, there is a condition at the end of the script that looks for all instances where students have already uploaded corrected versions to the subfolders `Checked` and deletes any of the outputs that have already been done. Student outputs are copied over to OSC by the `rclone.sh` script. 
 
+### Final Image Renaming
+- `copyImagesRename.sh`
+  - Copies images from the last round or renaming and renames them again to account for any manual editing of metadata in the "Manual metadata transcription step", and places them in the `/Images/FinalImages/ABTrays` directory.
+
 ## CTrays
 Processing the images and data from the C Trays imaged by students at the NEON Biorepository. These data are distinct from the A and B Trays because each image typically contains more than one tray. 
 
