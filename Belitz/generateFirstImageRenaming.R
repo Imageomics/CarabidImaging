@@ -20,6 +20,12 @@ firstpass_df$IndividualID_2<-paste0("NEON.BET.", firstpass_df$domainID, ".",firs
 firstpass_df$IndividualID_n1<-paste0("NEON.BET.", firstpass_df$domainID, ".",firstpass_df$IndividualID_n1)
 firstpass_df$IndividualID_n<-paste0("NEON.BET.", firstpass_df$domainID, ".",firstpass_df$IndividualID_n)
 
+#Only some names have .png appended
+#Here we remove all of the file type appendages
+firstpass_df$imageID<-sub("\\.png$", "", firstpass_df$imageID)
+#Here we add them back so that every file has one
+firstpass_df$imageID<-paste0(firstpass_df$imageID,".png")
+
 firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName),"-",
                                 firstpass_df$trayType,"tray-",
                                 "Y",firstpass_df$yearCollected,"-",
