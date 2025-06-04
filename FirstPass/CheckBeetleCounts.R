@@ -684,9 +684,16 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                 arrange(individualID), outfile, row.names = FALSE)
   } else {
     if (nrow(inImageQuery) == 0) {
-      # Create a placeholder with appropriate columns (e.g., from combined_data)
-      inImageQuery <- combined_data_available[0, ]  # creates a blank df with same structure
-      outfile <- paste0("./NEONIndividualLinkageChecks/QueryZero/CHECK_",
+      # If there are none in query, then take the ID2 to IDN1 range and output for manual checks
+      inImageQuery <- subset(combined_data_available, 
+                             domainID == row$domainID &
+                               scientificName_Species == row$scientificName_Species &
+                               yearCollected == row$yearCollected &
+                               numbericID >= row$numbericID_2 & 
+                               numbericID <= row$numbericID_1n)
+      #Filter by ID Status
+      inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
+      outfile <- paste0("./NEONIndividualLinkageChecks/QueryUnder/CHECK_",
                         gsub(" ", "_", row$scientificName), "-",
                         row$trayType, "tray-",
                         "Y", row$yearCollected, "-",
@@ -745,6 +752,7 @@ print(csv_to_remove)
 # OPTIONAL: Delete the files
 # Be careful with this step; uncomment to activate deletion
 file.remove(csv_to_remove)
+length(list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE))
 
 #Then we do this for Querys with too few entries
 # Define directories
@@ -770,4 +778,5 @@ print(csv_to_remove)
 # OPTIONAL: Delete the files
 # Be careful with this step; uncomment to activate deletion
 file.remove(csv_to_remove)
+length(list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE))
 
