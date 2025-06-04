@@ -25,7 +25,16 @@ tail -n +2 "$CSV" | awk -F',' '{print $21","$1}' | while IFS=',' read -r imageID
         cp "$src" "$dest"
         echo "Copied: $src -> $dest"
     else
-        echo "Missing: $src" >&2
+        # Append missing file path to the array
+        missing_files+=("$src")
     fi
-
 done
+
+# After the loop, print all missing files (if any)
+if [ ${#missing_files[@]} -gt 0 ]; then
+    echo
+    echo "The following files were missing and could not be copied:"
+    for filepath in "${missing_files[@]}"; do
+        echo "  $filepath"
+    done
+fi
