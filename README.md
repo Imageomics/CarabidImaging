@@ -1,7 +1,28 @@
 # Carabid Imaging
 __Description of work__
 
-Each folder in this directory (FirstPass, ABTrays, CTrays, Belitz, and SmallBeetles) refers to a distinct data source and contains code to do all necessary preprocessing of the images provided by that data source. 
+Each folder in this directory (FirstPass, ABTrays, CTrays, Belitz, and SmallBeetles) refers to a distinct data source and contains code to do all necessary preprocessing of the images provided by that data source. There are also several scripts in this local folder that run more universal processes or workflows that pull across data streams. 
+# Local Scripts:
+## Moving data between local and Google Drive
+- `rclone.sh`
+  - This script automates the rclone copying from Google Drive to OSC. Students at the biorepository have contributor access to upload images to the Google Drive at the end of every day, from there, they can be copied to OSC
+
+- `rclone_sendFilesToStudents.sh`
+  - This script automates the rclone copying of files that need to be individually checked by students from OSC to the appropriate Google Drive subfolders. This script should only be run after manually checking that all Google Sheets in the `Checked` subfolders of `NEONIndividualLinkageChecks` have been downloaded as xlsx files and reuploaded to the drive. These files can then be moved over to OSC with the `rclone.sh` script detailed above, and only then should a list of desired files be derived from the `CheckBeetleCounts.R` scripts below.
+
+## Running all ABTray Processes
+- `runAllABTrayProcesses.sh` is intended to execute scripts from the subfolders below the result in final images of the A and B Trays (ABTrays, FirstPass, and Belitz, and the "Pulling all data source together" scripts). The shell script submits a Slurm job that kicks off each script in the appropriate order. Unfortunately, some steps need to be performed manually before running, as rclone does not move Google Sheets; only exported versions, such as CSV and XLSX, are supported. 
+  - Before running, the following should be downloaded as xlsx from google drive and uploaded to OSC
+    - `BeetleMetadata`
+    - `catalog_firstPass_renamedMetadata`
+    - `catalog_Belitz_renamedMetadata`
+  - Download and reupload to Google Drive as xlsx
+    - `/NEONIndividualLinkageChecks/QueryUnder/Checked/[all google sheets]`
+    - `/NEONIndividualLinkageChecks/QueryOver/Checked/[all google sheets]`
+
+## Pulling all the Data Sources together
+- `collatIndividualsFromManualChecks.R`
+- `IndividualsFromAllSources.R`
 
 # Scripts for each data source:
 ## First Pass Images
@@ -76,15 +97,3 @@ Processing the images of the small beetles imaged by Aly East at the NEON Biorep
 ### Generating lists of individuals to link to the image
 - `CheckBeetleCounts.R`
   - Sheet 3 of `BeetleMetadata.xlsx` is used to query the NEON ground beetle record and the NEON Availability data to try and generate lists of individuals contained in each image.
-
-
-# Local Scripts
-## Backing up data
-`rclone.sh`
-> This script automates the rclone copying from Google Drive to OSC. Students at the biorepository have contributor access to upload images to the Google Drive at the end of every day, from there, they can be copied to OSC
-
-## Running all ABTray Processes
-
-
-## Pulling all the Data Sources together
-`IndividualsFromAllSources.R`
