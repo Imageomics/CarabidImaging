@@ -49,7 +49,7 @@ if (file.exists("./NEON_ExpertParaCombined.csv")) {
 #### Load and Format Manual Metadata ####
 
 # Load image tray metadata
-firstpass_df <- as.data.frame(read_excel("./BeetleMetadata_Belitz.xlsx", sheet = 1))
+firstpass_df <- as.data.frame(read_excel("./	catalog_Belitz_renamedMetadata.xlsx", sheet = 1))
 head(firstpass_df)
 
 # Create numeric IDs for filtering
