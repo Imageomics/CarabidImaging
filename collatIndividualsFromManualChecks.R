@@ -140,14 +140,12 @@ for (i in 1:length(QueryUnderCheckedFiles)) {
   QueryUnderChecked_df<-rbind(QueryUnderChecked_df, tmp)
 }
 table(QueryUnderChecked_df$imageID)
-table(QueryUnderChecked_df$P)
-QueryUnderChecked_df<-subset(QueryUnderChecked_df, P==1)
+table(QueryUnderChecked_df$Present)
+QueryUnderChecked_df<-subset(QueryUnderChecked_df, Present =="1")
 QueryUnderChecked_df$notes<-"QueryOver, Manually Checked"
 
-#Pull out files where there were manuall aditions to the dataset, so the rest of the NEON columns are NAs
-QueryUnderChecked_df_manualAdditions<-subset(QueryUnderChecked_df, is.na(uid))
-#List the images where that happened
-Images_w_Additions<-unique(QueryUnderChecked_df_manualAdditions$imageID)
+#List the images
+Images_w_Additions<-unique(QueryUnderChecked_df$imageID)
 
 tmp <- data.frame()
 #for each Image in Images_w_Additions
@@ -155,14 +153,16 @@ for (i in 1:length(Images_w_Additions)) {
   QueryUnderChecked_df_manualAdditions<-QueryUnderChecked_df%>%
     filter((imageID %in% Images_w_Additions[i]))
   
-  QueryUnderChecked_df_manualAdditions<-distinct(QueryUnderChecked_df_manualAdditions, individualID, .keep_all = TRUE)
-  
   QueryUnderChecked_df_manualAdditions_NEON<-combined_data%>%
     filter((individualID %in% QueryUnderChecked_df_manualAdditions$individualID))
   
   #ensure they are the same size
-  dim(QueryUnderChecked_df_manualAdditions_NEON)[1]
-  dim(QueryUnderChecked_df_manualAdditions)[1]
+  if (dim(QueryUnderChecked_df_manualAdditions_NEON)[1] != dim(QueryUnderChecked_df_manualAdditions)[1]) {
+    print(paste0(Images_w_Additions[i]," duplicated "))
+                 # dim(QueryUnderChecked_df_manualAdditions_NEON)[1]," from NEON ",
+                 # dim(QueryUnderChecked_df_manualAdditions)[1])," in df")
+    QueryUnderChecked_df_manualAdditions<-distinct(QueryUnderChecked_df_manualAdditions, individualID, .keep_all = TRUE)
+  }
   
   #Order both by individual ID to make sure that we can move columns from on to the next
   QueryUnderChecked_df_manualAdditions_NEON<-QueryUnderChecked_df_manualAdditions_NEON %>% #Order by individualID, this is the box order in this case
@@ -196,6 +196,7 @@ for (i in 1:length(Images_w_Additions)) {
 }
 dim(QueryUnderChecked_df)
 dim(tmp)
+dim(QueryUnderChecked_df)-dim(tmp)
 QueryUnderChecked_df<-tmp
 
 queryAll<-rbind(QueryUnderChecked_df, QueryOverChecked_df)
