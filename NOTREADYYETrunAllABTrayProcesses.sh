@@ -11,7 +11,7 @@ module load R/4.4.0-gnu11.2
 ## Download from Google Drive and Upload to OSC
 ### BeetleMetadata
 ### catalog_firstPass_renamedMetadata
-### catalog_Belitz_renamedMetadataTemplate
+### catalog_Belitz_renamedMetadata
 
 ## Download and reopload to Google Drive as xlsx
 ### /NEONIndividualLinkageChecks/QueryUnder/Checked/[all google sheets]
