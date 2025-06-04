@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=FirstpassRename
-#SBATCH --time=0:10:00 #10 minutes
+#SBATCH --job-name=allABTrays
+#SBATCH --time=0:20:00 #10 minutes
 #SBATCH --mail-type=ALL
-#SBATCH --output=out_FirstpassRename.%j
+#SBATCH --output=out_allABTrays.%j
 #SBATCH --account=PUOM0017
 
 module load R/4.4.0-gnu11.2
@@ -41,5 +41,6 @@ sleep 5
 sleep 5
 
 # NOT READY YET, but eventually:
+#Rscript collatIndividualsFromManualChecks.R
+sleep 5
 #Rscript collatIndividualsFromAllSources.R
-

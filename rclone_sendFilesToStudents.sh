@@ -13,5 +13,6 @@ LOCAL_DIR="/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/"
 rclone copy "$LOCAL_DIR" "$REMOTE:" \
   --max-depth 2 \
   --include "*.csv" \
+  --exclude "*/Checked/" \
   --verbose \
   --log-file="rclone_send.log"
