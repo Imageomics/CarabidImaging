@@ -86,12 +86,6 @@ firstpass_df$numbericID_2 <- as.numeric(firstpass_df$IndividualID_2)
 firstpass_df$numbericID_n1 <- as.numeric(firstpass_df$IndividualID_n1)
 firstpass_df$numbericID_n <- as.numeric(firstpass_df$IndividualID_n)
 
-# Split by provisional and finalized records
-firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)
-firstpass_df<-subset(firstpass_df, yearCollected<=2022)
-
-dim(firstpass_df)
-dim(firstpass_df_provisional)
 
 firstpass_df$imageID<-sub("\\.CR3$", "", firstpass_df$imageID)
 firstpass_df$imageID<-paste0(firstpass_df$imageID,".png")
@@ -275,8 +269,13 @@ firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName_Speci
                                 firstpass_df$trayType, "tray-", 
                                 "Y", firstpass_df$yearCollected, "-",
                                 firstpass_df$IndividualID_1, "-", firstpass_df$IndividualID_n, ".png")
-
 #### Image Matching by ID Range, Domain, Year, Species, and Para vs Expert Taxonomis ID ####
+# Split by provisional and finalized records
+firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)
+firstpass_df<-subset(firstpass_df, yearCollected<=2022)
+
+dim(firstpass_df)
+dim(firstpass_df_provisional)
 
 # Placeholder for all matched cases
 matched_df <- data.frame()
@@ -346,7 +345,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
 
-    if (num_found == (row$NumberOfBeetles-1)) {
+  if (num_found == (row$NumberOfBeetles-1)) {
     image_id <- row$newImageID
     inImageQuery$imageID <- image_id
     inImageQuery<-inImageQuery %>%
@@ -463,7 +462,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
   
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
-  df_remainingmissmatch$Notes[i] <- "query refined by scientificNameAuthorship"
   
   if (num_found == row$NumberOfBeetles) {
     image_id <- row$newImageID
@@ -509,7 +507,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
   
   num_found <- nrow(inImageQuery)
   df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
-  df_remainingmissmatch$Notes[i] <- "query refined by identificationReferences"
   
   if (num_found == row$NumberOfBeetles) {
     image_id <- row$newImageID
@@ -537,11 +534,6 @@ write.csv(matched_df, paste0("./BeetleMetadata",dataset,"Individuals.csv"), row.
 
 head(firstpass_df)
 dim(firstpass_df)
-
-firstpass_out_df<-firstpass_df %>%
-  filter((newImageID %in% matched_df$imageID))
-
-dim(firstpass_out_df)
 
 write.csv(firstpass_df, paste0("./BeetleMetadata",dataset,".csv"), row.names = FALSE)
 
@@ -573,6 +565,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     
     inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
     inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-row$processingNotes
     inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
     
     
@@ -597,6 +591,9 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
+      # inImageQuery$notes<-row$Notes
+      # inImageQuery$processingNotes<-row$processingNotes
+      inImageQuery<-add_column(inImageQuery, imagePath = paste0("/Images/FinalImages/",finalDataset))
 
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
@@ -611,6 +608,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
 
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
+      inImageQuery$notes<-row$Notes
+      inImageQuery$processingNotes<-row$processingNotes
       inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
       
       write.csv(inImageQuery %>%
