@@ -8,13 +8,14 @@ setwd("/fs/ess/PAS2136/CarabidImaging/")
 #Individuals that link nicely from images from AB Trays
 AB_matched_df<-read.csv("./BeetleMetadataABTraysIndividuals.csv")
 AB_matched_df$imagePath<-"/Images/FinalImages/ABTrays"
+
 #Individuals that link nicely from images from first pass
 FirstPass_matched_df<-read.csv("./catalog_firstPass_renamedIndividualsMetadata.csv")
 FirstPass_matched_df$imagePath<-"/Images/FinalImages/ABTrays"
 
 #Individuals that link well from Michael Beltiz's Images
-#Belitz<-read.csv()
-#Belitz$imagePath<="/Images/FinalImages/ABTrays"
+#Belitz_matched_df<-read.csv()
+#Belitz_matched_df$imagePath<-"/Images/FinalImages/ABTrays"
 
 #Individuals from Manual corrections
 Manual_matched_df<-read.csv("./BeetleMetadataManualIndividuals.csv")
