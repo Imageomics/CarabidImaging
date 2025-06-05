@@ -500,7 +500,6 @@ df_remainingmissmatch<-df_remainingmissmatch %>%
   filter(!(newImageID %in% matched_df$imageID))
 
 dim(df_remainingmissmatch)
-
 #After scientificNameAuthorship refernce material "identificationReferences" is the next big grouping.
 start<-dim(table(matched_df$imageID))[1]
 for (i in 1:nrow(df_remainingmissmatch)) {
@@ -623,7 +622,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                         row$trayType, "tray-",
                         "Y", row$yearCollected, "-",
                         row$IndividualID_1, "-", row$IndividualID_n, ".csv")
-
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
       inImageQuery$notes<-row$Notes
