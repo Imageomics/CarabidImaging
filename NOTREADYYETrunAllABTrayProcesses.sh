@@ -41,6 +41,6 @@ sleep 5
 sleep 5
 
 # NOT READY YET, but eventually:
-#Rscript collatIndividualsFromManualChecks.R
+Rscript collatIndividualsFromManualChecks.R
 sleep 5
-#Rscript collatIndividualsFromAllSources.R
+Rscript collatIndividualsFromAllSources.R
