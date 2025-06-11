@@ -3,6 +3,7 @@ library(readxl)
 library(dplyr)
 library(tibble)
 
+setwd("/fs/ess/PAS2136/CarabidImaging/")
 
 #Read in the NEON data
 combined_data <- read.csv("./NEON_ExpertParaCombined.csv")
