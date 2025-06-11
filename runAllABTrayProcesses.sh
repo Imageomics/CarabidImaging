@@ -18,29 +18,34 @@ module load R/4.4.0-gnu11.2
 ### /NEONIndividualLinkageChecks/QueryOver/Checked/[all google sheets]
 
 #Run the rclone copy to pull over everything of OSC
-./rclone.sh
+echo ______________________________________________ RClone ______________________________________________
+#./rclone.sh
 
 sleep 5
 
 #Run all ABTray Processes in Sequence
-Rscript ./ABTrays/CheckBeetleCounts.R
+echo ______________________________________________ ABTrays ______________________________________________
+#Rscript ./ABTrays/CheckBeetleCounts.R
 sleep 5
-./ABTrays/copyImagesRename.sh
+#./ABTrays/copyImagesRename.sh
 sleep 5
 
 #Run Secondary FirstPass Processes in Sequence
-Rscript ./FirstPass/CheckBeetleCounts.R
+echo ______________________________________________ First Pass ______________________________________________
+#Rscript ./FirstPass/CheckBeetleCounts.R
 sleep 5
-./FirstPass/copyImagesWithSecondRename.sh
+#./FirstPass/copyImagesWithSecondRename.sh
 sleep 5
 
 #Run Secondary Belitz Processes in Sequence
+echo ______________________________________________ Belitz ______________________________________________
 #Rscript ./Belitz/CheckBeetleCounts.R
 sleep 5
 #./Belitz/copyImagesWithSecondRename.sh
 sleep 5
 
-# NOT READY YET, but eventually:
+# Put all of the datasets togethers
+echo ______________________________________________ collate ______________________________________________
 Rscript collatIndividualsFromManualChecks.R
 sleep 5
 Rscript collatIndividualsFromAllSources.R
