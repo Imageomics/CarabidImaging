@@ -62,8 +62,10 @@ occurrences<-read.csv("./occurrences.csv")
 determinations<-read.csv("./determinations.csv")
 shipments<-read.csv("./shipments.csv")
 
+print("occurrences Summary:")
 dim(occurrences)
 head(occurrences)
+print("occurrences availability:")
 table(occurrences$availability, useNA = "ifany")
 
 # Filter NEON API data to only include available specimens
@@ -78,7 +80,6 @@ dim(combined_data_available)[1]/dim(combined_data)[1]
 
 # Load image tray metadata
 firstpass_df <- as.data.frame(read_excel("./catalog_firstPass_renamedMetadata.xlsx", sheet = 1))
-head(firstpass_df)
 
 # Create numeric IDs for filtering
 firstpass_df$numbericID_1 <- as.numeric(substr(firstpass_df$IndividualID_1,14,nchar(firstpass_df$IndividualID_1)))
@@ -88,13 +89,18 @@ firstpass_df$numbericID_n <- as.numeric(substr(firstpass_df$IndividualID_n,14,nc
 head(firstpass_df)
 
 #Filter out records that have not been addressed yet
+print("Reimaging needed?:")
 firstpass_df<-subset(firstpass_df, !is.na(Marked))
 table(firstpass_df$reimageNeeded)
+print("total dim:")
 dim(firstpass_df)
 firstpass_df<-subset(firstpass_df, reimageNeeded==0)
+print("After removing images that need reimaging:")
 table(firstpass_df$reimageNeeded)
 dim(firstpass_df)
 
+
+print("Notes:")
 table(firstpass_df$Notes)
 
 
@@ -163,6 +169,8 @@ for (i in 1:nrow(firstpass_df)) {
     print("error")
   }
 }
+
+print("Processing Notes:")
 table(firstpass_df$processingNotes)
 
 #If the domain was wrong, that means that the derrived IndividualID would have been wrong, so we derive them here
@@ -223,7 +231,7 @@ for (i in 1:nrow(firstpass_df)) {
     print("error")
   }
 }
-
+print("Processing Notes:")
 table(firstpass_df$processingNotes)
 
 #Check Expert/Para match up in the same way as Year
@@ -275,7 +283,7 @@ for (i in 1:nrow(firstpass_df)) {
     print("error")
   }
 }
-
+print("Processing Notes:")
 table(firstpass_df$processingNotes)
 
 #### Create Image IDs ####
@@ -374,7 +382,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     matched_df <- rbind(matched_df, inImageQuery)
   } 
 }
-
 #update running list of remaining mismatches
 df_remainingmissmatch<-df_remainingmissmatch %>%
   filter(!(newImageID %in% matched_df$imageID))
@@ -449,7 +456,9 @@ for (i in 1:nrow(df_remainingmissmatch)) {
 df_remainingmissmatch<-df_remainingmissmatch %>%
   filter(!(newImageID %in% matched_df$imageID))
 
+print("Notes in mismatch:")
 table(df_remainingmissmatch$Notes)
+print("Notes in matched:")
 table(matched_df$notes)
 table(matched_df$processingNotes)
 
@@ -473,7 +482,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                                            scientificName_Species == row$scientificName_Species &
                                            yearCollected == row$yearCollected &
                                            numbericID == row$numbericID_1)$scientificNameAuthorship
-  print(table(inImageQuery$scientificNameAuthorship))
   print(paste0("ID1, indicates authorship: ",fineScientificNameAuthorship))
   inImageQuery<-subset(inImageQuery, scientificNameAuthorship==fineScientificNameAuthorship)
   
@@ -493,13 +501,14 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     matched_df <- rbind(matched_df, inImageQuery)
   } 
 }
+print("Number in matched df before query:")
 start
+print("Number in matched df after query:")
 dim(table(matched_df$imageID))[1]
 
 df_remainingmissmatch<-df_remainingmissmatch %>%
   filter(!(newImageID %in% matched_df$imageID))
 
-dim(df_remainingmissmatch)
 #After scientificNameAuthorship refernce material "identificationReferences" is the next big grouping.
 start<-dim(table(matched_df$imageID))[1]
 for (i in 1:nrow(df_remainingmissmatch)) {
@@ -519,7 +528,6 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                                            scientificName_Species == row$scientificName_Species &
                                            yearCollected == row$yearCollected &
                                            numbericID == row$numbericID_1)$identificationReferences
-  print(table(inImageQuery$identificationReferences))
   print(paste0("ID1, indicates authorship: ",fineScientificNameAuthorship))
   inImageQuery<-subset(inImageQuery, identificationReferences==fineScientificNameAuthorship)
   
@@ -539,18 +547,19 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     matched_df <- rbind(matched_df, inImageQuery)
   } 
 }
+
+print("Number in matched df before query:")
 start
+print("Number in matched df after query:")
 dim(table(matched_df$imageID))[1]
 
-dim(table(matched_df$imageID))
+print("N of total photos:")
 dim(firstpass_df)[1]
+print("Percent photos in matched:")
 dim(table(matched_df$imageID))/dim(firstpass_df)[1]
 
 # Save matched dataset to file
 write.csv(matched_df, "./catalog_firstPass_renamedIndividualsMetadata.csv", row.names = FALSE)
-
-head(firstpass_df)
-dim(firstpass_df)
 
 write.csv(firstpass_df, "./catalog_firstPass_renamedMetadataClean.csv", row.names = FALSE)
 
