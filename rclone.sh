@@ -14,5 +14,6 @@ rclone copy "$REMOTE:" "$LOCAL_DIR" \
   --drive-export-formats xlsx \
   --update \
   --verbose \
+  --exclude "*/Student/" \
   --log-file="$LOCAL_DIR/rclone_sync.log"
 

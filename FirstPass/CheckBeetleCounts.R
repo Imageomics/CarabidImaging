@@ -292,7 +292,7 @@ table(firstpass_df$processingNotes)
 firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName_Species), "-",
                                 firstpass_df$trayType, "tray-", 
                                 "Y", firstpass_df$yearCollected, "-",
-                                firstpass_df$IndividualID_1, "-", firstpass_df$IndividualID_n, ".png")
+                                firstpass_df$IndividualID_1, "-", firstpass_df$IndividualID_n, ".jpg")
 #### Image Matching by ID Range, Domain, Year, Species, and Para vs Expert Taxonomis ID ####
 # Split by provisional and finalized records
 firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)

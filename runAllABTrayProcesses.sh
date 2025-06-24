@@ -11,7 +11,7 @@ module load R/4.4.0-gnu11.2
 ## Download from Google Drive and Upload to OSC
 ### BeetleMetadata
 ### catalog_firstPass_renamedMetadata
-### catalog_Belitz_renamedMetadata
+### catalog_Belitz_renamedMetadata (DONE, does not need to be downloaded again)
 
 ## Download and reopload to Google Drive as xlsx
 ### /NEONIndividualLinkageChecks/QueryUnder/Checked/[all google sheets]
@@ -19,29 +19,29 @@ module load R/4.4.0-gnu11.2
 
 #Run the rclone copy to pull over everything of OSC
 echo ______________________________________________ RClone ______________________________________________
-#./rclone.sh
+./rclone.sh
 
 sleep 5
 
 #Run all ABTray Processes in Sequence
 echo ______________________________________________ ABTrays ______________________________________________
-#Rscript ./ABTrays/CheckBeetleCounts.R
+Rscript ./ABTrays/CheckBeetleCounts.R
 sleep 5
-#./ABTrays/copyImagesRename.sh
+./ABTrays/copyImagesRename.sh
 sleep 5
 
 #Run Secondary FirstPass Processes in Sequence
 echo ______________________________________________ First Pass ______________________________________________
-#Rscript ./FirstPass/CheckBeetleCounts.R
+Rscript ./FirstPass/CheckBeetleCounts.R
 sleep 5
-#./FirstPass/copyImagesWithSecondRename.sh
+./FirstPass/copyImagesWithSecondRename.sh
 sleep 5
 
 #Run Secondary Belitz Processes in Sequence
 echo ______________________________________________ Belitz ______________________________________________
-#Rscript ./Belitz/CheckBeetleCounts.R
+Rscript ./Belitz/CheckBeetleCounts.R
 sleep 5
-#./Belitz/copyImagesWithSecondRename.sh
+./Belitz/copyImagesWithSecondRename.sh
 sleep 5
 
 # Put all of the datasets togethers
