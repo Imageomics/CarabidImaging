@@ -563,6 +563,7 @@ write.csv(matched_df, "./catalog_firstPass_renamedIndividualsMetadata.csv", row.
 
 write.csv(firstpass_df, "./catalog_firstPass_renamedMetadataClean.csv", row.names = FALSE)
 
+#write.csv(subset(df_remainingmissmatch, NumberOfBeetlesInQuery==0), "./QueryZero.csv")
 
 #Write out datasets for images that dont link to be manually checked. 
 for (i in 1:nrow(df_remainingmissmatch)) {

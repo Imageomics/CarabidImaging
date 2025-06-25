@@ -277,7 +277,9 @@ firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName_Speci
 firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)
 firstpass_df<-subset(firstpass_df, yearCollected<=2022)
 
+print("dim first pass in 2025 release")
 dim(firstpass_df)
+print("dim first pass in provisional release")
 dim(firstpass_df_provisional)
 
 # Placeholder for all matched cases
