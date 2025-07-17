@@ -105,8 +105,9 @@ for (i in 2:length(QueryOverCheckedFiles)) {
 table(QueryOverChecked_df$imageID)
 table(QueryOverChecked_df$Present)
 QueryOverChecked_df<-subset(QueryOverChecked_df, Present==1)
-QueryOverChecked_df$notes<-"QueryOver, Manually Checked"
+QueryOverChecked_df$processingNotes<-paste0("QueryOver, Manually Checked;",QueryOverChecked_df$processingNotes)
 table(QueryOverChecked_df$P)
+table(QueryOverChecked_df$processingNotes)
 
 table(QueryOverChecked_df$domainID, useNA = "ifany")
 
@@ -255,8 +256,9 @@ for (i in 2:length(QueryUnderCheckedFiles)) {
 table(QueryUnderChecked_df$imageID)
 table(QueryUnderChecked_df$Present)
 QueryUnderChecked_df<-subset(QueryUnderChecked_df, Present==1)
-QueryUnderChecked_df$notes<-"QueryUnder, Manually Checked"
-table(QueryUnderChecked_df$Present)
+QueryUnderChecked_df$processingNotes<-paste0("QueryUnder, Manually Checked;",QueryUnderChecked_df$processingNotes)
+table(QueryUnderChecked_df$P)
+table(QueryUnderChecked_df$processingNotes)
 
 table(QueryUnderChecked_df$domainID, useNA = "ifany")
 
