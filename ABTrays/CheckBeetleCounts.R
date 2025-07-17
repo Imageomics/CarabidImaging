@@ -601,7 +601,14 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       # inImageQuery$notes<-row$Notes
       # inImageQuery$processingNotes<-row$processingNotes
       inImageQuery<-add_column(inImageQuery, imagePath = paste0("/Images/FinalImages/",finalDataset))
-
+      
+      if (nrow(inImageQuery) == 0) {
+        outfile <- paste0("./NEONIndividualLinkageChecks/QueryZero/CHECK_",
+                          gsub(" ", "_", row$scientificName), "-",
+                          row$trayType, "tray-",
+                          "Y", row$yearCollected, "-",
+                          row$IndividualID_1, "-", row$IndividualID_n, ".csv")
+      }
       write.csv(inImageQuery %>%
                   arrange(individualID), outfile, row.names = FALSE)
     } else {
@@ -681,3 +688,34 @@ print(csv_to_remove)
 file.remove(csv_to_remove)
 length(list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE))
 
+# #Remove Query Zeros once they have been done
+# csv_dir <- "/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryZero"
+# csv_dir1 <- "/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryUnder"
+# xlsx_dir1 <- file.path(csv_dir, "Checked")
+# csv_dir2 <- "/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver"
+# xlsx_dir2 <- file.path(csv_dir, "Checked")
+# 
+# # List .csv files
+# csv_files <- list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE)
+# 
+# # List .xlsx files
+# xlsx_files1 <- list.files(xlsx_dir1, pattern = "\\.xlsx$", full.names = FALSE)
+# xlsx_files2 <- list.files(xlsx_dir2, pattern = "\\.xlsx$", full.names = FALSE)
+# 
+# xlsx_files<-c(xlsx_files1, xlsx_files2)
+# # Get base names (without extensions) of the xlsx files
+# xlsx_basenames <- tools::file_path_sans_ext(xlsx_files)
+# 
+# # Filter csv files to identify which to delete
+# csv_to_remove <- csv_files[
+#   tools::file_path_sans_ext(basename(csv_files)) %in% xlsx_basenames
+# ]
+# 
+# # Confirm what will be deleted
+# cat("The following CSV files will be removed:\n")
+# print(csv_to_remove)
+# 
+# # OPTIONAL: Delete the files
+# # Be careful with this step; uncomment to activate deletion
+# file.remove(csv_to_remove)
+# length(list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE))
