@@ -377,8 +377,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(2:(nrow(inImageQuery)+1)) #Account for droping the first beetle
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("ID2 thru IDn;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -411,8 +411,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(1:(nrow(inImageQuery)))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID1 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("ID1 thru IDn-1;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -446,8 +446,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(2:(nrow(inImageQuery)+1))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("ID2 thru IDn-1;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -496,8 +496,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("Filtered By scientificNameAuthorship;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
@@ -542,8 +542,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("Filtered By identificationReferences;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
