@@ -48,4 +48,6 @@ sleep 5
 echo ______________________________________________ collate ______________________________________________
 Rscript collatIndividualsFromManualChecks.R
 sleep 5
+Rscript collatImageMetadata.R
+sleep 5
 Rscript collatIndividualsFromAllSources.R
