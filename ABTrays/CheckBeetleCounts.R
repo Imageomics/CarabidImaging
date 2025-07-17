@@ -94,9 +94,9 @@ firstpass_df$imageID<-paste0(firstpass_df$imageID,".png")
 # Clean and Extract Taxonomic Names 
 firstpass_df$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", firstpass_df$scientificName)
 
-#### Check for metadata that has been entered incorrectly using reduntant information ####
+#### Check for metadata that has been entered incorrectly using redundant information ####
 firstpass_df$processingNotes<-""
-#Check Domain match up by pulling down records with species name, year, and numberic ID
+#Check Domain match up by pulling down records with species name, year, and numeric ID
 #If all 4 ID queries yield a non-NA value and all of those values match, the domain is updated to those matching values
 for (i in 1:nrow(firstpass_df)) {
   row <- firstpass_df[i, ]
@@ -265,6 +265,57 @@ for (i in 1:nrow(firstpass_df)) {
 print("Processing Notes:")
 table(firstpass_df$processingNotes)
 
+#Check Species ID the same way as well
+#Check Expert/Para match up in the same way as Year
+for (i in 1:nrow(firstpass_df)) {
+  row <- firstpass_df[i, ]
+  # Filter matching individuals
+  ImageQueryID1 <- subset(combined_data_available,
+                            individualID== row$IndividualID_1)
+  ImageQueryID2 <- subset(combined_data_available,
+                          individualID== row$IndividualID_2)
+  ImageQueryIDN1 <- subset(combined_data_available, 
+                           individualID== row$IndividualID_n1)
+  ImageQueryIDN <- subset(combined_data_available,
+                          individualID== row$IndividualID_n)
+  
+  # Collect all ID_status values if present
+  ID_status <- c(
+    if (nrow(ImageQueryID1) > 0) ImageQueryID1$scientificName_Species else NA,
+    if (nrow(ImageQueryID2) > 0) ImageQueryID2$scientificName_Species else NA,
+    if (nrow(ImageQueryIDN1) > 0) ImageQueryIDN1$scientificName_Species else NA,
+    if (nrow(ImageQueryIDN) > 0) ImageQueryIDN$scientificName_Species else NA
+  )
+  
+  print(paste0("Metadata recorded: ", row$scientificName_Species))
+  print(paste0("IndividualID_1: ", ID_status[1]))
+  print(paste0("IndividualID_2: ", ID_status[2]))
+  print(paste0("IndividualID_n1: ", ID_status[3]))
+  print(paste0("IndividualID_n: ", ID_status[4]))
+  
+  # Check all are not NA and all the same
+  if (!any(is.na(ID_status)) && length(unique(ID_status)) == 1) {
+    new_ID <- unique(ID_status)
+    if (new_ID == row$scientificName_Species) {
+      print("correct")
+    } else if (new_ID == "Carabidae sp.") {
+      print("Skip update: new_ID is 'Carabidae sp.'")
+    } else {
+      firstpass_df$processingNotes[i] <- paste0(
+        "scientificName_Species updated from ", row$scientificName_Species,
+        " to ", new_ID,
+        " based on IndividualID queries"
+      )
+      firstpass_df$scientificName_Species[i] <- new_ID 
+    }
+  }
+  else {
+    print("error")
+  }
+}
+print("Processing Notes:")
+table(firstpass_df$processingNotes)
+
 #### Create Image IDs ####
 #This happens after the metadata check to ensure that images are named correctly
 # Concatenate metadata fields to generate unique image IDs
@@ -357,8 +408,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(2:(nrow(inImageQuery)+1)) #Account for droping the first beetle
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("ID2 thru IDn;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -391,8 +442,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(1:(nrow(inImageQuery)))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID1 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("ID1 thru IDn-1;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -426,8 +477,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(2:(nrow(inImageQuery)+1))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("ID2 thru IDn-1;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   }
@@ -476,8 +527,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("Filtered By scientificNameAuthorship;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
@@ -522,8 +573,8 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       arrange(individualID)
     inImageQuery$Order<-c(1:nrow(inImageQuery))
     inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    inImageQuery$notes<-"ID2 thru IDn-1"
-    inImageQuery$processingNotes<-row$processingNotes
+    inImageQuery$notes<-row$Notes
+    inImageQuery$processingNotes<-paste0("Filtered By identificationReferences;",row$processingNotes)
     
     matched_df <- rbind(matched_df, inImageQuery)
   } 
