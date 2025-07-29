@@ -5,7 +5,8 @@
 #SBATCH --output=out_allABTrays.%j
 #SBATCH --account=PUOM0017
 
-module load R/4.4.0-gnu11.2
+module load gcc/12.3.0
+module load R/4.4.0
 
 #Manuall Processes:
 ## Download from Google Drive and Upload to OSC
