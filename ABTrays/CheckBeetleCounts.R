@@ -48,6 +48,44 @@ if (file.exists("./NEON_ExpertParaCombined.csv")) {
   write.csv(combined_data, "./NEON_ExpertParaCombined.csv", row.names = FALSE)
 }
 
+if (file.exists("./NEON_ExpertParaCombined_Prelim.csv")) {
+  combined_data_prelim <- read.csv("./NEON_ExpertParaCombined_Prelim.csv")
+} else {
+  neon_df <- neonUtilities::loadByProduct(
+    dpID = Beetle_dpID,
+    token = neon_token,
+    include.provisional = TRUE,
+    startdate = "2023-01",
+    check.size = FALSE
+  )
+  
+  neon_para <- neon_df$bet_parataxonomistID
+  neon_expert <- neon_df$bet_expertTaxonomistIDProcessed
+  
+  neon_para_clean <- neon_para %>%
+    filter(!(individualID %in% neon_expert$individualID))
+  
+  common_cols <- intersect(names(neon_para_clean), names(neon_expert))
+  neon_para_common <- neon_para_clean[, common_cols]
+  neon_expert_common <- neon_expert[, common_cols]
+  
+  neon_para_common$ID_status <- "Para"
+  neon_expert_common$ID_status <- "Expert"
+  
+  combined_data_prelim <- bind_rows(neon_para_common, neon_expert_common)
+  combined_data_prelim$numbericID <- as.numeric(substr(combined_data_prelim$individualID, 
+                                                       (nchar(combined_data_prelim$individualID) - 5), 
+                                                       nchar(combined_data_prelim$individualID)))
+  
+  write.csv(combined_data_prelim, "./NEON_ExpertParaCombined_Prelim.csv", row.names = FALSE)
+}
+
+combined_data_prelim<-subset(combined_data_prelim, release=="PROVISIONAL")
+
+dim(combined_data)
+combined_data<-rbind(combined_data, combined_data_prelim)
+dim(combined_data)
+
 # Add year to combined_data
 combined_data$yearCollected <- as.numeric(substr(combined_data$collectDate, 1, 4))
 
@@ -80,6 +118,11 @@ dim(combined_data_available)[1]/dim(combined_data)[1]
 
 # Load image tray metadata
 firstpass_df <- as.data.frame(read_excel("./BeetleMetadata.xlsx", sheet = 1))
+dim(firstpass_df)
+table(firstpass_df$ReimageNeeded)
+firstpass_df <- subset(firstpass_df, is.na(ReimageNeeded))
+dim(firstpass_df)
+firstpass_df$ReimageNeeded<-NULL
 
 # Create numeric IDs for filtering
 firstpass_df$numbericID_1 <- as.numeric(firstpass_df$IndividualID_1)
@@ -326,10 +369,9 @@ firstpass_df$newImageID<-paste0(gsub(" ", "_", firstpass_df$scientificName_Speci
 #### Image Matching by ID Range, Domain, Year, Species, and Para vs Expert Taxonomis ID ####
 # Split by provisional and finalized records
 firstpass_df_provisional<-subset(firstpass_df, yearCollected>2022)
-firstpass_df<-subset(firstpass_df, yearCollected<=2022)
 
 print("dim first pass in 2025 release")
-dim(firstpass_df)
+dim(subset(firstpass_df, yearCollected<=2022))
 print("dim first pass in provisional release")
 dim(firstpass_df_provisional)
 
