@@ -54,3 +54,6 @@ rsconnect/
 /*.jpg
 /*.JPG
 /*.CR3
+
+#Outfiles from slurm
+/*out_*
