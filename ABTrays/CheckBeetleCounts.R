@@ -504,7 +504,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
                          domainID == row$domainID &
                            scientificName_Species == row$scientificName_Species &
                            yearCollected == row$yearCollected &
-                           numbericID >= row$numbericID_1 & 
+                           numbericID >= row$numbericID_2 & 
                            numbericID <= row$numbericID_n1)
   #Filter by ID Status
   inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
