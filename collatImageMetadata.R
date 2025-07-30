@@ -8,8 +8,6 @@ library(tibble)
 # Set working directory to CarabidImaging project
 setwd("/fs/ess/PAS2136/CarabidImaging/")
 
-list.files()
-
 ABTrays<-read.csv("./BeetleMetadataABTrays.csv")
 ABTrays$imageSource<-"ABTray Imaging"
 firstPass<-read.csv("./catalog_firstPass_renamedMetadataClean.csv")

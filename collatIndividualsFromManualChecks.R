@@ -73,17 +73,18 @@ for (i in 2:length(QueryOverCheckedFiles)) {
   # Sort by individualID
   tmp <- tmp %>% arrange(individualID)
   
-  # Add "Order" column if missing
-  if (!"Order" %in% names(tmp)) {
-    tmp <- add_column(tmp, Order = "", .before = "sampleCondition")
-    tmp$Order <- 1:nrow(tmp)
-  }
-  
   # Fix inconsistent "Present" column name
   present_col <- names(tmp)[tolower(names(tmp)) == "present" | 
                               tolower(names(tmp)) == "p"]
   if (length(present_col) == 1 && present_col != "Present") {
     names(tmp)[names(tmp) == present_col] <- "Present"
+  }
+  
+  # Add "Order" column if missing
+  if (!"Order" %in% names(tmp)) {
+    tmp <- add_column(tmp, Order = "", .before = "sampleCondition")
+    tmp<-subset(tmp, Present==1)
+    tmp$Order <- 1:nrow(tmp)
   }
   
   # Add any missing columns from `cols`
@@ -224,17 +225,18 @@ for (i in 2:length(QueryUnderCheckedFiles)) {
   # Sort by individualID
   tmp <- tmp %>% arrange(individualID)
   
-  # Add "Order" column if missing
-  if (!"Order" %in% names(tmp)) {
-    tmp <- add_column(tmp, Order = "", .before = "sampleCondition")
-    tmp$Order <- 1:nrow(tmp)
-  }
-  
   # Fix inconsistent "Present" column name
   present_col <- names(tmp)[tolower(names(tmp)) == "present" | 
                               tolower(names(tmp)) == "p"]
   if (length(present_col) == 1 && present_col != "Present") {
     names(tmp)[names(tmp) == present_col] <- "Present"
+  }
+  
+  # Add "Order" column if missing
+  if (!"Order" %in% names(tmp)) {
+    tmp <- add_column(tmp, Order = "", .before = "sampleCondition")
+    tmp<-subset(tmp, Present==1)
+    tmp$Order <- 1:nrow(tmp)
   }
   
   # Add any missing columns from `cols`
@@ -301,8 +303,8 @@ for (img in Images_w_Additions) {
       NumberOfBeetlesInTray = max(tmp_manual$NumberOfBeetlesInTray, na.rm = TRUE),
       imageID = img,
       imagePath = unique(tmp_manual$imagePath)[1],
-      processingNotes = tmp_manual$notes,
-      notes = tmp_manual$processingNotes
+      processingNotes = tmp_manual$processingNotes,
+      notes = tmp_manual$notes
     ) 
   
   # Add any missing columns to match full `cols` set
