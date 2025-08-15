@@ -16,6 +16,8 @@ combined_data$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", combined_d
 #Individuals that had to be manually filtered from query with too many entries
 QueryOverCheckedDir<-"/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver/Checked/"
 QueryOverCheckedFiles<-list.files(QueryOverCheckedDir, pattern = "*.xlsx")
+files_to_keep <- grep(pattern = "\\Ctray-$", x = all_files, invert = TRUE, value = TRUE)
+
 
 #Read in first file to create the seed for the dataset
 QueryOverChecked_df <- as.data.frame(read_excel(paste0(QueryOverCheckedDir,QueryOverCheckedFiles[1]),
@@ -58,13 +60,13 @@ if (length(missing_cols) > 0) {
 
 # Reorder columns to match `cols` order
 QueryOverChecked_df <- QueryOverChecked_df[, cols]
-
+QueryOverChecked_df$identifiedDate<-as.character(QueryOverChecked_df$identifiedDate)
 #### 1.3 Loop over the rest of the files and rbind them together####
 for (i in 2:length(QueryOverCheckedFiles)) {
   # Read in the file
   tmp <- as.data.frame(read_excel(paste0(QueryOverCheckedDir, QueryOverCheckedFiles[i]),
                                   sheet = 1))
-  
+  tmp$identifiedDate<-as.character(tmp$identifiedDate)
   # Add imageID column based on filename
   tmp$imageID <- paste0(substr(QueryOverCheckedFiles[i], 
                                7, (nchar(QueryOverCheckedFiles[i]) - 4)),
@@ -333,6 +335,7 @@ dim(QueryUnderChecked_df)
 
 
 #### 3. Merged the Harmonized dataset and export ####
+QueryUnderChecked_df$identifiedDate<-as.character(QueryUnderChecked_df$identifiedDate)
 queryAll<-rbind(QueryUnderChecked_df, QueryOverChecked_df)
 dim(queryAll)
 write.csv(queryAll, "./BeetleMetadataManualIndividuals.csv")

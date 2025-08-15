@@ -102,4 +102,8 @@ all_out<-rbind(all_out, check_flagged)
 all_out$unique<-NULL
 all_out<-all_out%>%
   group_by(individualID, Order)
+
+print("Total Number of individuals:")
+dim(all_out)
+
 write.csv(all_out, "./allIndividuals.csv", row.names = FALSE)
