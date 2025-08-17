@@ -2,7 +2,7 @@
 #SBATCH --job-name=allABTrays
 #SBATCH --time=0:20:00 #10 minutes
 #SBATCH --mail-type=ALL
-#SBATCH --output=out_allABTrays.%j
+#SBATCH --output=./out/out_allABTrays.%j
 #SBATCH --account=PUOM0017
 
 module load gcc/12.3.0
@@ -21,7 +21,6 @@ module load R/4.4.0
 #Run the rclone copy to pull over everything of OSC
 echo ______________________________________________ RClone ______________________________________________
 ./rclone.sh
-
 sleep 5
 
 #Run all ABTray Processes in Sequence

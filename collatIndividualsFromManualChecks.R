@@ -16,7 +16,7 @@ combined_data$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", combined_d
 #Individuals that had to be manually filtered from query with too many entries
 QueryOverCheckedDir<-"/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver/Checked/"
 QueryOverCheckedFiles<-list.files(QueryOverCheckedDir, pattern = "*.xlsx")
-files_to_keep <- grep(pattern = "\\Ctray-$", x = all_files, invert = TRUE, value = TRUE)
+QueryOverCheckedFiles <- grep(pattern = "\\Ctray-$", x = QueryOverCheckedFiles, invert = TRUE, value = TRUE)
 
 
 #Read in first file to create the seed for the dataset

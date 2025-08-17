@@ -175,15 +175,22 @@ for (col in names(firstpass_df)) {
   }
 }
 
-# Updated helper function (no "Top"/"Bottom" in ID)
+# Updated helper function
 format_tray <- function(scientificName, year, id1, idn) {
   name_clean <- gsub(" ", "_", scientificName)
   year_part <- if (!is.na(year)) year else "NA"
-  idn_part <- if (!is.na(idn)) paste0("-", idn) else ""
+  
+  # Check if idn is missing or ends in ".NA"
+  if (is.na(idn) || grepl("\\.NA$", idn)) {
+    idn_part <- ""
+  } else {
+    idn_part <- paste0("-", idn)
+  }
+  
   paste0(name_clean, "-Y", year_part, "-", id1, idn_part)
 }
 
-# Build newImageID without "Top"/"Bottom"
+# Rebuild newImageID with updated function
 firstpass_df$newImageID <- mapply(function(sci1, y1, id1_1, id1_n,
                                            sci2, y2, id2_1, id2_n) {
   tray1 <- format_tray(sci1, y1, id1_1, id1_n)
@@ -205,7 +212,7 @@ id2_1 = firstpass_df$Tray2_IndividualID_1,
 id2_n = firstpass_df$Tray2_IndividualID_n,
 USE.NAMES = FALSE)
 
-#Changing to long formate
+#Changing to long format
 # Subset Tray 1 data and rename columns
 tray1_cols <- grep("^Tray1_", names(firstpass_df), value = TRUE)
 common_cols <- c("imageID", "newImageID","NumberOfTrays", "checkedOrder", "Marked", "Photographer", "dateImaged", "Notes")
@@ -579,7 +586,7 @@ abline(a = 0, b = 1, col = "red")
 #Sometimes an ID is recorded Incorrectly
 #To deal with that issue with minimal data loss we use the numbericID_2 and numbericID_n1
 #If these filters give the appropriate number of matches, we document the need to exclude the first or last beetle from the tray in the notes
-start<-dim(table(matched_df$imageID))[1]
+start<-dim(table(matched_df$trayID))[1]
 # #First test for numbericID_2 to numbericID_n range
 # for (i in 1:nrow(df_remainingmissmatch)) {
 #   row <- df_remainingmissmatch[i, ]
@@ -692,7 +699,6 @@ start<-dim(table(matched_df$imageID))[1]
 # table(matched_df$processingNotes)
 
 #Boxes are often grouped by scientificNameAuthorship For all those remaining, we will break it out by idntifier or source material.
-start<-dim(table(matched_df$imageID))[1]
 for (i in 1:nrow(df_remainingmissmatch)) {
   row <- df_remainingmissmatch[i, ]
   
@@ -733,13 +739,13 @@ for (i in 1:nrow(df_remainingmissmatch)) {
 print("Number in matched df before query:")
 start
 print("Number in matched df after query:")
-dim(table(matched_df$imageID))[1]
+dim(table(matched_df$trayID))[1]
 
 df_remainingmissmatch<-df_remainingmissmatch %>%
 filter(!(trayID %in% matched_df$trayID))
 
 #After scientificNameAuthorship refernce material "identificationReferences" is the next big grouping.
-start<-dim(table(matched_df$imageID))[1]
+start<-dim(table(matched_df$trayID))[1]
 for (i in 1:nrow(df_remainingmissmatch)) {
   row <- df_remainingmissmatch[i, ]
   
@@ -780,7 +786,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
 print("Number in matched df before query:")
 start
 print("Number in matched df after query:")
-dim(table(matched_df$imageID))[1]
+dim(table(matched_df$trayID))[1]
 
 print("N of total photos:")
 dim(firstpass_df)[1]
@@ -789,6 +795,10 @@ dim(table(matched_df$trayID))/dim(firstpass_df)[1]
 
 colnames(matched_df)
 colnames(firstpass_df)
+firstpass_df$numbericID_1_save<-NULL
+firstpass_df$numbericID_2_save<-NULL
+firstpass_df$numbericID_n1_save<-NULL
+firstpass_df$numbericID_n_save<-NULL
 
 # Save matched dataset to file
 write.csv(matched_df, paste0("./BeetleMetadata",dataset,"Individuals.csv"), row.names = FALSE)
