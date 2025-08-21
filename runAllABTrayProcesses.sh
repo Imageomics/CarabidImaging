@@ -51,3 +51,5 @@ sleep 5
 Rscript collatImageMetadata.R
 sleep 5
 Rscript collatIndividualsFromAllSources.R
+sleep 5
+Rscript rmDuplicateImages.R
