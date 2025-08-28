@@ -10,6 +10,8 @@ setwd("/fs/ess/PAS2136/CarabidImaging/")
 
 ABTrays<-read.csv("./BeetleMetadataABTrays.csv")
 ABTrays$imageSource<-"ABTray Imaging"
+CTrays<-read.csv("./BeetleMetadataCTrays.csv")
+CTrays$imageSource<-"CTray Imaging"
 firstPass<-read.csv("./catalog_firstPass_renamedMetadataClean.csv")
 firstPass$imageSource<-"firstPass Imaging"
 Belitz<-read.csv("./catalog_Belitz_renamedMetadataClean.csv")
@@ -29,7 +31,8 @@ length(colnames(firstPass))
 
 ImageMetadata<-rbind(ABTrays[, common_cols], 
                      firstPass[, common_cols], 
-                     Belitz[, common_cols])
+                     Belitz[, common_cols],
+                     ABTrays[, common_cols])
 
 ImageMetadata$originalImageID<-ImageMetadata$imageID
 ImageMetadata$imageID<-ImageMetadata$newImageID

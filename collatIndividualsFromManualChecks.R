@@ -16,7 +16,7 @@ combined_data$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", combined_d
 #Individuals that had to be manually filtered from query with too many entries
 QueryOverCheckedDir<-"/fs/ess/PAS2136/CarabidImaging/NEONIndividualLinkageChecks/QueryOver/Checked/"
 QueryOverCheckedFiles<-list.files(QueryOverCheckedDir, pattern = "*.xlsx")
-QueryOverCheckedFiles <- grep(pattern = "\\Ctray-$", x = QueryOverCheckedFiles, invert = TRUE, value = TRUE)
+#QueryOverCheckedFiles <- grep(pattern = "-Ctray-", x = QueryOverCheckedFiles, invert = TRUE, value = TRUE)
 
 
 #Read in first file to create the seed for the dataset
@@ -38,7 +38,7 @@ cols<-c("uid","namedLocation","domainID","siteID","plotID","setDate","collectDat
         "Order","sampleCondition","taxonID","scientificName","taxonRank","identificationQualifier","scientificNameAuthorship",
         "morphospeciesID","identificationReferences","nativeStatusCode","identifiedBy","remarks","identificationHistoryID",
         "publicationDate","release","ID_status","numbericID","yearCollected","scientificName_Species","NumberOfBeetlesInTray",
-        "notes","processingNotes","imagePath","imageID")
+        "notes","processingNotes","imagePath","imageID","trayID")
 
 #### 1.2 Standardize Column Names and Fill Missing Columns ####
 
