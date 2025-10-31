@@ -28,11 +28,24 @@ common_cols <- intersect(names(ABTrays), names(firstPass))
 length(common_cols)
 length(colnames(ABTrays))
 length(colnames(firstPass))
+length(colnames(CTrays))
+intersect(names(ABTrays), names(CTrays))
+symdiff(names(ABTrays), names(CTrays))
+
 
 ImageMetadata<-rbind(ABTrays[, common_cols], 
                      firstPass[, common_cols], 
-                     Belitz[, common_cols],
-                     ABTrays[, common_cols])
+                     Belitz[, common_cols])
+
+symdiff(names(ImageMetadata), names(CTrays))
+CTrays$trayType<-"C"
+ImageMetadata$Tray<-NA
+ImageMetadata$NumberOfTrays<-NA
+ImageMetadata$trayID<-NA
+
+common_cols <- intersect(names(ImageMetadata), names(CTrays))
+ImageMetadata<-rbind(ImageMetadata[, common_cols], 
+                     CTrays[, common_cols])
 
 ImageMetadata$originalImageID<-ImageMetadata$imageID
 ImageMetadata$imageID<-ImageMetadata$newImageID
