@@ -43,7 +43,7 @@ if (file.exists("./NEON_ExpertParaCombined.csv")) {
   combined_data <- bind_rows(neon_para_common, neon_expert_common)
   combined_data$numbericID <- as.numeric(substr(combined_data$individualID, 
                                                 (nchar(combined_data$individualID) - 5), 
-                                                nchar(combined_data$individualID)))
+                                               nchar(combined_data$individualID)))
   
   write.csv(combined_data, "./NEON_ExpertParaCombined.csv", row.names = FALSE)
 }
@@ -461,11 +461,11 @@ for (i in 1:nrow(firstpass_df)) {
     } else {
       firstpass_df[i, ]$Notes <- paste0("Species Mismatch: ",
                                         row$scientificName_Species, " entered, ",
-                                        paste(unique(inImageQuery$scientificName_Species), collapse=", "),
+                                        paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
                                         " queried")
       print(paste0("Species Mismatch: ",
                    row$scientificName_Species, " entered, ",
-                   paste(unique(inImageQuery$scientificName_Species), collapse=", "),
+                   paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
                    " queried"))
     }
     

@@ -521,11 +521,11 @@ for (i in 1:nrow(firstpass_df)) {
     } else {
       firstpass_df[i, ]$Notes <- paste0("Species Mismatch: ",
                                         row$scientificName_Species, " entered, ",
-                                        paste(unique(inImageQuery$scientificName_Species), collapse=", "),
+                                        paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
                                         " queried")
       print(paste0("Species Mismatch: ",
                    row$scientificName_Species, " entered, ",
-                   paste(unique(inImageQuery$scientificName_Species), collapse=", "),
+                   paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
                    " queried"))
     }
     
