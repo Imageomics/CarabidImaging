@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=allABTrays
-#SBATCH --time=0:20:00 #10 minutes
+#SBATCH --time=0:40:00 #10 minutes
 #SBATCH --mail-type=ALL
 #SBATCH --output=./out/out_allABTrays.%j
 #SBATCH --account=PUOM0017
@@ -23,20 +23,6 @@ echo ______________________________________________ RClone _____________________
 ./rclone.sh
 sleep 5
 
-#Run all ABTray Processes in Sequence
-echo ______________________________________________ ABTrays ______________________________________________
-Rscript ./ABTrays/CheckBeetleCounts.R
-sleep 5
-./ABTrays/copyImagesRename.sh
-sleep 5
-
-#Run all CTray Processes in Sequence
-echo ______________________________________________ ABTrays ______________________________________________
-Rscript ./CTrays/CheckBeetleCounts.R
-sleep 5
-./CTrays/copyImagesRename.sh
-sleep 5
-
 #Run Secondary FirstPass Processes in Sequence
 echo ______________________________________________ First Pass ______________________________________________
 Rscript ./FirstPass/CheckBeetleCounts.R
@@ -49,6 +35,27 @@ echo ______________________________________________ Belitz _____________________
 Rscript ./Belitz/CheckBeetleCounts.R
 sleep 5
 ./Belitz/copyImagesWithSecondRename.sh
+sleep 5
+
+#Run Secondary Belitz Processes in Sequence
+echo ______________________________________________ Small ______________________________________________
+Rscript ./SmallBeetles/CheckBeetleCounts.R
+sleep 5
+./SmallBeetles/copyImagesWithSecondRename.sh
+sleep 5
+
+#Run all ABTray Processes in Sequence
+echo ______________________________________________ ABTrays ______________________________________________
+Rscript ./ABTrays/CheckBeetleCounts.R
+sleep 5
+./ABTrays/copyImagesRename.sh
+sleep 5
+
+#Run all CTray Processes in Sequence
+echo ______________________________________________ CTrays ______________________________________________
+Rscript ./CTrays/CheckBeetleCounts.R
+sleep 5
+./CTrays/copyImagesRename.sh
 sleep 5
 
 # Put all of the datasets togethers
