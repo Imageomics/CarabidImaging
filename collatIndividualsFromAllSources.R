@@ -4,7 +4,7 @@ library(dplyr)
 library(tibble)
 
 setwd("/fs/ess/PAS2136/CarabidImaging/")
-#Individuals that link nicely from images from AB Trays
+#Individuals that link nicely from images from C Trays
 C_matched_df<-read.csv("./BeetleMetadataCTraysIndividuals.csv")
 C_matched_df$imagePath<-"/Images/FinalImages/CTrays"
 
@@ -22,6 +22,12 @@ FirstPass_matched_df$trayID<-NA
 Belitz_matched_df<-read.csv("catalog_Belitz_renamedIndividualsMetadata.csv")
 Belitz_matched_df$imagePath<-"/Images/FinalImages/ABTrays"
 Belitz_matched_df$trayID<-NA
+
+#Individuals that link nicely from images from Small Beetles
+Small_matched_df<-read.csv("./BeetleMetadataSmallBeetlesIndividuals.csv")
+Small_matched_df$imagePath<-"/Images/FinalImages/SmallBeetles"
+Small_matched_df$trayID<-NA
+
 
 #Individuals from Manual corrections
 Manual_matched_df<-read.csv("./BeetleMetadataManualIndividuals.csv")
@@ -47,12 +53,15 @@ symdiff(common_cols, names(Manual_matched_df))
 
 symdiff(common_all, names(C_matched_df))
 
+symdiff(common_all, names(Small_matched_df))
+
 #Merge the datasets with matching columns
 all_out<-rbind(AB_matched_df[, common_all], 
                FirstPass_matched_df[, common_all], 
                Belitz_matched_df[, common_all],
                Manual_matched_df[, common_all],
-               C_matched_df[, common_all])
+               C_matched_df[, common_all],
+               Small_matched_df[, common_all])
 str(all_out)
 dim(all_out)
 
