@@ -94,6 +94,10 @@ combined_data$scientificName_Species<-gsub(r"{\s*\([^\)]+\)}","",as.character(co
 combined_data$scientificName_Species<-gsub(" {2,}", " ", combined_data$scientificName_Species)
 combined_data$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", combined_data$scientificName_Species)
 
+combined_data$scientificName_Species <-
+  gsub("/.*$", "", combined_data$scientificName_Species)
+
+
 #### Read External Specimen Availability Metadata ####
 #Read from Chandra
 occurrences<-read.csv("./occurrences.csv")
@@ -118,7 +122,7 @@ dim(combined_data_available)[1]/dim(combined_data)[1]
 
 # Load image tray metadata
 firstpass_df <- as.data.frame(read_excel("./BeetleMetadata.xlsx", sheet = 1))
-dim(firstpass_df)
+# dim(firstpass_df)
 table(firstpass_df$ReimageNeeded)
 firstpass_df <- subset(firstpass_df, is.na(ReimageNeeded))
 dim(firstpass_df)
@@ -169,17 +173,17 @@ for (i in 1:nrow(firstpass_df)) {
     if (nrow(ImageQueryIDN) > 0) ImageQueryIDN$domainID else NA
   )
   
-  print(paste0("Metadata recorded Year: ", row$domainID))
-  print(paste0("IndividualID_1 Year: ", domains[1]))
-  print(paste0("IndividualID_2 Year: ", domains[2]))
-  print(paste0("IndividualID_n1 Year: ", domains[3]))
-  print(paste0("IndividualID_n Year: ", domains[4]))
-  
+  # print(paste0("Metadata recorded Year: ", row$domainID))
+  # print(paste0("IndividualID_1 Year: ", domains[1]))
+  # print(paste0("IndividualID_2 Year: ", domains[2]))
+  # print(paste0("IndividualID_n1 Year: ", domains[3]))
+  # print(paste0("IndividualID_n Year: ", domains[4]))
+  # 
   # Check all are not NA and all the same
   if (!any(is.na(domains)) && length(unique(domains)) == 1) {
     new_domain <- unique(domains)
     if (new_domain == row$domainID) {
-      print("Match")
+      #print("Match")
     } else {
       firstpass_df$processingNotes[i] <- paste0(
         "domainID updated from ", row$domainID,
@@ -190,7 +194,7 @@ for (i in 1:nrow(firstpass_df)) {
     }
   }
   else {
-    print("error")
+    #print("error")
   }
 }
 
@@ -229,17 +233,17 @@ for (i in 1:nrow(firstpass_df)) {
     if (nrow(ImageQueryIDN) > 0) ImageQueryIDN$yearCollected else NA
   )
   
-  print(paste0("Metadata recorded Year: ", row$yearCollected))
-  print(paste0("IndividualID_1 Year: ", years[1]))
-  print(paste0("IndividualID_2 Year: ", years[2]))
-  print(paste0("IndividualID_n1 Year: ", years[3]))
-  print(paste0("IndividualID_n Year: ", years[4]))
+  # print(paste0("Metadata recorded Year: ", row$yearCollected))
+  # print(paste0("IndividualID_1 Year: ", years[1]))
+  # print(paste0("IndividualID_2 Year: ", years[2]))
+  # print(paste0("IndividualID_n1 Year: ", years[3]))
+  # print(paste0("IndividualID_n Year: ", years[4]))
   
   # Check all are not NA and all the same
   if (!any(is.na(years)) && length(unique(years)) == 1) {
     new_year <- unique(years)
     if (new_year == row$yearCollected) {
-      print("Match")
+      #print("Match")
     } else {
       firstpass_df$processingNotes[i] <- paste0(
         "yearCollected updated from ", row$yearCollected,
@@ -250,7 +254,7 @@ for (i in 1:nrow(firstpass_df)) {
     }
   }
   else {
-    print("error")
+    #print("error")
   }
 }
 print("Processing Notes:")
@@ -359,6 +363,8 @@ for (i in 1:nrow(firstpass_df)) {
 print("Processing Notes:")
 table(firstpass_df$processingNotes)
 
+firstpass_df<-subset(firstpass_df, imageID!="NA.png")
+
 #### Create Image IDs ####
 #This happens after the metadata check to ensure that images are named correctly
 # Concatenate metadata fields to generate unique image IDs
@@ -421,6 +427,7 @@ dim(table(matched_df$imageID))/dim(firstpass_df)[1]
 
 plot(df_remainingmissmatch$NumberOfBeetles, df_remainingmissmatch$NumberOfBeetlesInQuery)
 abline(a = 0, b = 1, col = "red") 
+
 
 #Sometimes an ID is recorded Incorrectly
 #To deal with that issue with minimal data loss we use the numbericID_2 and numbericID_n1
@@ -628,6 +635,49 @@ start
 print("Number in matched df after query:")
 dim(table(matched_df$imageID))[1]
 
+df_remainingmissmatch<-df_remainingmissmatch %>%
+  filter(!(newImageID %in% matched_df$imageID))
+start<-dim(table(matched_df$imageID))[1]
+
+# Handel images 2024 and newer beetles that are marked as unavail
+# (We have been imaging long enough that some have been added)
+for (i in 1:nrow(df_remainingmissmatch)) {
+  row <- df_remainingmissmatch[i, ]
+  
+  if (row$yearCollected<2024) { next }
+  else {
+    # Filter matching individuals
+    inImageQuery <- subset(combined_data, 
+                           domainID == row$domainID &
+                             scientificName_Species == row$scientificName_Species &
+                             yearCollected == row$yearCollected &
+                             numbericID >= row$numbericID_1 & 
+                             numbericID <= row$numbericID_n)
+    #Filter by ID Status
+    inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
+    
+    num_found <- nrow(inImageQuery)
+    df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
+    
+    if (num_found == row$NumberOfBeetles) {
+      image_id <- row$newImageID
+      inImageQuery$imageID <- image_id
+      inImageQuery<-inImageQuery %>%
+        arrange(individualID)
+      inImageQuery$Order<-c(1:nrow(inImageQuery))
+      inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
+      inImageQuery$notes<-row$Notes
+      inImageQuery$processingNotes<-""
+      
+      matched_df <- rbind(matched_df, inImageQuery)
+  }
+  } 
+}
+print("Number in matched df before query:")
+start
+print("Number in matched df after query:")
+dim(table(matched_df$imageID))[1]
+
 print("N of total photos:")
 dim(firstpass_df)[1]
 print("Percent photos in matched:")
@@ -698,7 +748,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       
       if (nrow(inImageQuery) == 0) {
         outfile <- paste0("./NEONIndividualLinkageChecks/QueryZero/CHECK_",
-                          gsub(" ", "_", row$scientificName), "-",
+                          gsub("/","",gsub(" ", "_", row$scientificName)), "-",
                           row$trayType, "tray-",
                           "Y", row$yearCollected, "-",
                           row$IndividualID_1, "-", row$IndividualID_n, ".csv")

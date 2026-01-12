@@ -41,7 +41,7 @@ sleep 5
 echo ______________________________________________ Small ______________________________________________
 Rscript ./SmallBeetles/CheckBeetleCounts.R
 sleep 5
-./SmallBeetles/copyImagesWithSecondRename.sh
+./SmallBeetles/copyImagesRename.sh
 sleep 5
 
 #Run all ABTray Processes in Sequence
@@ -60,9 +60,9 @@ sleep 5
 
 # Put all of the datasets togethers
 echo ______________________________________________ collate ______________________________________________
-Rscript collatIndividualsFromManualChecks.R
-sleep 5
 Rscript collatImageMetadata.R
+sleep 5
+Rscript collatIndividualsFromManualChecks.R
 sleep 5
 Rscript collatIndividualsFromAllSources.R
 sleep 5

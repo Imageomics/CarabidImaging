@@ -94,6 +94,9 @@ combined_data$scientificName_Species<-gsub(r"{\s*\([^\)]+\)}","",as.character(co
 combined_data$scientificName_Species<-gsub(" {2,}", " ", combined_data$scientificName_Species)
 combined_data$scientificName_Species<-sub("^(\\S*\\s+\\S+).*", "\\1", combined_data$scientificName_Species)
 
+combined_data$scientificName_Species <-
+  gsub("/.*$", "", combined_data$scientificName_Species)
+
 #### Read External Specimen Availability Metadata ####
 #Read from Chandra
 occurrences<-read.csv("./occurrences.csv")
@@ -173,7 +176,7 @@ for (col in names(firstpass_df)) {
 }
 
 # Updated helper function
-format_tray <- function(scientificName, year, id1, idn) {
+format_tray <- function(scientificName, year, tray, id1, idn) {
   name_clean <- gsub(" ", "_", scientificName)
   year_part <- if (!is.na(year)) year else "NA"
   
@@ -184,16 +187,17 @@ format_tray <- function(scientificName, year, id1, idn) {
     idn_part <- paste0("-", idn)
   }
   
-  paste0(name_clean, "-Y", year_part, "-", id1, idn_part)
+  paste0(name_clean, "-Y", year_part, "-", tray, "tray-", id1, idn_part)
 }
 
 # Rebuild newImageID with updated function
-firstpass_df$newImageID <- mapply(function(sci1, y1, id1_1, id1_n) {
-  tray1 <- format_tray(sci1, y1, id1_1, id1_n)
+firstpass_df$newImageID <- mapply(function(sci1, y1, tray, id1_1, id1_n) {
+  tray1 <- format_tray(sci1, y1, tray, id1_1, id1_n)
   paste0(tray1, ".JPG")
 },
 sci1 = firstpass_df$scientificName,
 y1 = firstpass_df$yearCollected,
+tray = firstpass_df$trayType,
 id1_1 = firstpass_df$IndividualID_1,
 id1_n = firstpass_df$IndividualID_n,
 USE.NAMES = FALSE)
@@ -460,11 +464,11 @@ for (i in 1:nrow(firstpass_df)) {
       matched_df <- rbind(matched_df, inImageQuery)
     } else {
       firstpass_df[i, ]$Notes <- paste0("Species Mismatch: ",
-                                        row$scientificName_Species, " entered, ",
+                                        row$scientificName_Species, " entered ",
                                         paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
                                         " queried")
       print(paste0("Species Mismatch: ",
-                   row$scientificName_Species, " entered, ",
+                   row$scientificName_Species, " entered ",
                    paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
                    " queried"))
     }
@@ -707,7 +711,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
     
     outfile <- paste0("./NEONIndividualLinkageChecks/QueryOver/CHECK_",
                       gsub(" ", "_", row$scientificName), "-",
-                      "Ctray-",
+                      row$trayType, "tray-",
                       "Y", row$yearCollected, "-",
                       row$IndividualID_1, "-", row$IndividualID_n, ".csv")
     
@@ -724,30 +728,32 @@ for (i in 1:nrow(df_remainingmissmatch)) {
   } else {
     if (nrow(inImageQuery) == 0) {
       # If there are none in query, then take the ID2 to IDN1 range and output for manual checks
-      inImageQuery <- subset(combined_data_available, 
-                             domainID == row$domainID &
+      inImageQuery <- subset(combined_data, 
+                             #domainID == row$domainID &
                                scientificName_Species == row$scientificName_Species &
-                               yearCollected == row$yearCollected &
-                               numbericID >= row$numbericID_2 & 
-                               numbericID <= row$numbericID_1n)
+                              #yearCollected == row$yearCollected &
+                               numbericID >= row$numbericID_1 & 
+                               numbericID <= row$numbericID_n)
       #Filter by ID Status
       inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
-      outfile <- paste0("./NEONIndividualLinkageChecks/QueryUnder/CHECK_",
+      outfile <- paste0("./NEONIndividualLinkageChecks/QueryOver/CHECK_",
                         gsub(" ", "_", row$scientificName), "-",
                         row$trayType, "tray-",
                         "Y", row$yearCollected, "-",
                         row$IndividualID_1, "-", row$IndividualID_n, ".csv")
       
+      inImageQuery[nrow(inImageQuery) + 1, ] <- NA
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
       inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
-      # inImageQuery$notes<-row$Notes
-      # inImageQuery$processingNotes<-row$processingNotes
-      inImageQuery<-add_column(inImageQuery, imagePath = paste0("/Images/FinalImages/",finalDataset))
+      inImageQuery$notes<-row$Notes
+      inImageQuery$processingNotes<-row$processingNotes
+      inImageQuery$newImageID<-row$newImageID
+      inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
       
-      if (nrow(inImageQuery) == 0) {
+      if (nrow(inImageQuery) == 1) {
         outfile <- paste0("./NEONIndividualLinkageChecks/QueryZero/CHECK_",
                           gsub(" ", "_", row$scientificName), "-",
-                          "Ctray-",
+                          row$trayType, "tray-",
                           "Y", row$yearCollected, "-",
                           row$IndividualID_1, "-", row$IndividualID_n, ".csv")
       }
@@ -758,7 +764,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       
       outfile <- paste0("./NEONIndividualLinkageChecks/QueryUnder/CHECK_",
                         gsub(" ", "_", row$scientificName), "-",
-                        "Ctray-",
+                        row$trayType, "tray-",
                         "Y", row$yearCollected, "-",
                         row$IndividualID_1, "-", row$IndividualID_n, ".csv")
       inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
@@ -862,3 +868,4 @@ print(csv_to_remove)
 # Be careful with this step; uncomment to activate deletion
 file.remove(csv_to_remove)
 length(list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE))
+
