@@ -47,3 +47,16 @@ hist(df3$Order, breaks = 50)
 table(table(CheckSet$imageID))
 
 #write.csv(CheckSet,"./CheckSet_20260112.csv", row.names = FALSE)
+
+fix<-read.csv("./CheckSet_20260112.csv")
+
+CheckSet<-df %>% filter(individualID %in% fix$individualID)
+
+symdiff(CheckSet$individualID, fix$individualID)
+symdiff(colnames(CheckSet), colnames(fix))
+colnames(CheckSet)
+colnames(fix)
+
+CheckSet<-rbind(CheckSet, subset(fix[,c(1:(ncol(fix)-2))], individualID=="NEON.BET.D06.005892"))
+dim(CheckSet)
+write.csv(CheckSet,"./CheckSet_20260113.csv", row.names = FALSE)
