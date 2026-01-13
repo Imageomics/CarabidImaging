@@ -53,6 +53,10 @@ QueryMannual_Unique<- QueryMannualAll %>%
   ungroup()
 table(duplicated(QueryMannual_Unique$file))
 
+QueryMannual_Unique <- QueryMannual_Unique[
+  !grepl("\\(1\\)", QueryMannual_Unique$file),
+]
+
 table(QueryMannualAll$dir)
 table(QueryMannual_Unique$dir)
 
@@ -73,6 +77,9 @@ cols<-c("uid","namedLocation","domainID","siteID","plotID","setDate","collectDat
 
 #### 2.2 Standardize Column Names and Fill Missing Columns ####
 Checked_df$identifiedDate<-as.character(Checked_df$identifiedDate)
+Checked_df$setDate<-as.character(Checked_df$setDate)
+Checked_df$collectDate<-as.character(Checked_df$collectDate)
+
 
 # Fix inconsistent "Present" column name
 present_col <- names(Checked_df)[tolower(names(Checked_df)) == "present" | 
@@ -97,13 +104,14 @@ Checked_df$processingNotes<-paste0(sub(".*/([^/]+)/Checked/?$", "\\1", QueryMann
 
 # Reorder columns to match `cols` order
 Checked_df <- Checked_df[, cols]
+Checked_df<-subset(Checked_df, Present == 1)
+
 
 #### 2.3 Loop over the rest of the files and rbind them together####
 for (i in 2:nrow(QueryMannual_Unique)) {
   # Read in the file
   tmp <- as.data.frame(read_excel(paste0(QueryMannual_Unique$dir[i],QueryMannual_Unique$file[i]),
                                   sheet = 1))
-  tmp$identifiedDate<-as.character(tmp$identifiedDate)
   
   # Add imageID column based on filename
   tmp$imageID <- paste0(substr(QueryMannual_Unique$file[i], 
@@ -118,6 +126,10 @@ for (i in 2:nrow(QueryMannual_Unique)) {
                               tolower(names(tmp)) == "p"]
   if (length(present_col) == 1 && present_col != "Present") {
     names(tmp)[names(tmp) == present_col] <- "Present"
+  }
+  tmp<-subset(tmp, Present==1)
+  if (nrow(tmp)==0) {
+    next
   }
   
   # Add "Order" column if missing
@@ -141,8 +153,15 @@ for (i in 2:nrow(QueryMannual_Unique)) {
   tmp$processingNotes<-paste0(sub(".*/([^/]+)/Checked/?$", "\\1", QueryMannual_Unique$dir[i]), 
                                      "- Manually Checked; ",
                               tmp$processingNotes)
-  
+  tmp[] <- lapply(tmp, function(x) {
+    type.convert(x, as.is = TRUE)
+  })
+  tmp$identifiedDate<-as.character(tmp$identifiedDate)
+  tmp$setDate<-as.character(tmp$setDate)
+  tmp$collectDate<-as.character(tmp$collectDate)
+  tmp$notes<-as.character(tmp$notes)
   # Bind to master dataframe
+  
   Checked_df <- bind_rows(Checked_df, tmp)
 }
 
