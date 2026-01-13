@@ -494,48 +494,72 @@ matched_df <- data.frame()
 
 # Handle images with 1–4 beetles
 for (i in 1:nrow(firstpass_df)) {
+  
   row <- firstpass_df[i, ]
   
   if (row$NumberOfBeetles %in% 1:4) {
-    # Get the IDs for however many beetles there are
-    beetle_ids <- unlist(row[paste0("IndividualID_", c(1,2,"n1","n"))])
+    
+    # Define canonical ID column order
+    id_cols <- c("IndividualID_1", "IndividualID_2", "IndividualID_n1", "IndividualID_n")
+    
+    # Extract IDs in semantic order
+    beetle_ids <- unlist(row[id_cols])
+    
+    # Drop missing / placeholder IDs (e.g., "NEON.BET.D06.NA")
+    beetle_ids <- beetle_ids[
+      !is.na(beetle_ids) &
+        beetle_ids != "" &
+        !grepl("\\.NA$", beetle_ids)
+    ]
     
     # Filter matching individuals
-    inImageQuery <- subset(combined_data_available, individualID %in% beetle_ids)
+    inImageQuery <- subset(
+      combined_data_available,
+      individualID %in% beetle_ids
+    )
     
-    # Filter by ID Status (ExpertOrPara)
     if (nrow(inImageQuery) == 0) {
-      print(paste0(row$trayID," No record by ID"))
+      print(paste0(row$trayID, " No record by ID"))
       firstpass_df[i, ]$Notes <- "No record by ID"
       next
     }
     
     # If all queried individuals match the species
     if (all(inImageQuery$scientificName_Species == row$scientificName_Species)) {
+      
       image_id <- row$newImageID
       inImageQuery$imageID <- image_id
-      inImageQuery$Order <- 1:nrow(inImageQuery)  # Assign order values sequentially
+      
+      # ---- CORRECT ORDER ASSIGNMENT ----
+      order_map <- setNames(seq_along(beetle_ids), beetle_ids)
+      inImageQuery$Order <- order_map[as.character(inImageQuery$individualID)]
+      # ---------------------------------
+      
       inImageQuery$NumberOfBeetlesInTray <- row$NumberOfBeetles
       inImageQuery$trayID <- row$trayID
       inImageQuery$notes <- row$Notes
       inImageQuery$processingNotes <- row$processingNotes
       
       matched_df <- rbind(matched_df, inImageQuery)
+      
     } else {
-      firstpass_df[i, ]$Notes <- paste0("Species Mismatch: ",
-                                        row$scientificName_Species, " entered, ",
-                                        paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
-                                        " queried")
-      print(paste0("Species Mismatch: ",
-                   row$scientificName_Species, " entered, ",
-                   paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
-                   " queried"))
+      
+      firstpass_df[i, ]$Notes <- paste0(
+        "Species Mismatch: ",
+        row$scientificName_Species, " entered, ",
+        paste(unique(inImageQuery$scientificName_Species), collapse = " & "),
+        " queried"
+      )
+      
+      print(firstpass_df[i, ]$Notes)
     }
     
   } else {
     next
   }
 }
+
+
 dim(firstpass_df)
 df_remainingmissmatch<-firstpass_df %>%
   filter(!(trayID %in% matched_df$trayID))
@@ -544,48 +568,72 @@ dim(df_remainingmissmatch)
 # Handle images with 1-4 beetle that are marked as unavail
 # (We have been imaging long enough that some singtons have been returned)
 for (i in 1:nrow(df_remainingmissmatch)) {
+
   row <- df_remainingmissmatch[i, ]
   
   if (row$NumberOfBeetles %in% 1:4) {
-    # Get the IDs for however many beetles there are
-    beetle_ids <- unlist(row[paste0("IndividualID_", c(1,2,"n1","n"))])
+    
+    # Define canonical ID column order
+    id_cols <- c("IndividualID_1", "IndividualID_2", "IndividualID_n1", "IndividualID_n")
+    
+    # Extract IDs in semantic order
+    beetle_ids <- unlist(row[id_cols])
+    
+    # Drop missing / placeholder IDs (e.g., "NEON.BET.D06.NA")
+    beetle_ids <- beetle_ids[
+      !is.na(beetle_ids) &
+        beetle_ids != "" &
+        !grepl("\\.NA$", beetle_ids)
+    ]
     
     # Filter matching individuals
-    inImageQuery <- subset(combined_data, individualID %in% beetle_ids)
+    inImageQuery <- subset(
+      combined_data,
+      individualID %in% beetle_ids
+    )
     
-    # Filter by ID Status (ExpertOrPara)
     if (nrow(inImageQuery) == 0) {
-      print(paste0(row$trayID," No record by ID"))
+      print(paste0(row$trayID, " No record by ID"))
       df_remainingmissmatch[i, ]$Notes <- "No record by ID"
       next
     }
     
     # If all queried individuals match the species
     if (all(inImageQuery$scientificName_Species == row$scientificName_Species)) {
+      
       image_id <- row$newImageID
       inImageQuery$imageID <- image_id
-      inImageQuery$Order <- 1:nrow(inImageQuery)  # Assign order values sequentially
+      
+      # ---- CORRECT ORDER ASSIGNMENT ----
+      order_map <- setNames(seq_along(beetle_ids), beetle_ids)
+      inImageQuery$Order <- order_map[as.character(inImageQuery$individualID)]
+      # ---------------------------------
+      
       inImageQuery$NumberOfBeetlesInTray <- row$NumberOfBeetles
       inImageQuery$trayID <- row$trayID
-      inImageQuery$notes <- row$Notes
+      inImageQuery$notes <- ""
       inImageQuery$processingNotes <- row$processingNotes
       
       matched_df <- rbind(matched_df, inImageQuery)
+      
     } else {
-      df_remainingmissmatch[i, ]$Notes <- paste0("Species Mismatch: ",
-                                        row$scientificName_Species, " entered, ",
-                                        paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
-                                        " queried")
-      print(paste0("Species Mismatch: ",
-                   row$scientificName_Species, " entered, ",
-                   paste(unique(inImageQuery$scientificName_Species), collapse=" & "),
-                   " queried"))
+      
+      df_remainingmissmatch[i, ]$Notes <- paste0(
+        "Species Mismatch: ",
+        row$scientificName_Species, " entered, ",
+        paste(unique(inImageQuery$scientificName_Species), collapse = " & "),
+        " queried"
+      )
+      
+      print(df_remainingmissmatch[i, ]$Notes)
     }
     
   } else {
     next
   }
 }
+
+
 df_remainingmissmatch<-firstpass_df %>%
   filter(!(trayID %in% matched_df$trayID))
 dim(df_remainingmissmatch)
@@ -907,7 +955,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
       outfile <- paste0("./NEONIndividualLinkageChecks/QueryOver/CHECK_",
                         gsub(" ", "_", row$scientificName), "-",
-                        "Ctray",
+                        "Ctray-",
                         "Y", row$yearCollected, "-",
                         row$IndividualID_1, "-", row$IndividualID_n, ".csv")
       
