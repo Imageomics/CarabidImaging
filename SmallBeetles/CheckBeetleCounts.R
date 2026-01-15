@@ -1,7 +1,7 @@
 #### Setup and Package Loading ####
 library(neonUtilities)
 library(readxl)
-library(dplyr) 
+library(dplyr)
 library(tibble)
 
 dataset<-"SmallBeetles"
@@ -176,7 +176,7 @@ for (col in names(firstpass_df)) {
 }
 
 # Updated helper function
-format_tray <- function(scientificName, year, tray, id1, idn) {
+format_tray <- function(scientificName, tray, year, id1, idn) {
   name_clean <- gsub(" ", "_", scientificName)
   year_part <- if (!is.na(year)) year else "NA"
   
@@ -187,12 +187,12 @@ format_tray <- function(scientificName, year, tray, id1, idn) {
     idn_part <- paste0("-", idn)
   }
   
-  paste0(name_clean, "-Y", year_part, "-", tray, "tray-", id1, idn_part)
+  paste0(name_clean, "-", tray, "tray-", "Y", year_part, "-", id1, idn_part)
 }
 
 # Rebuild newImageID with updated function
-firstpass_df$newImageID <- mapply(function(sci1, y1, tray, id1_1, id1_n) {
-  tray1 <- format_tray(sci1, y1, tray, id1_1, id1_n)
+firstpass_df$newImageID <- mapply(function(sci1, tray, y1, id1_1, id1_n) {
+  tray1 <- format_tray(sci1, tray, y1, id1_1, id1_n)
   paste0(tray1, ".JPG")
 },
 sci1 = firstpass_df$scientificName,
@@ -488,7 +488,7 @@ for (i in 1:nrow(firstpass_df)) {
       
       firstpass_df[i, ]$Notes <- paste0(
         "Species Mismatch: ",
-        row$scientificName_Species, " entered, ",
+        row$scientificName_Species, " entered ",
         paste(unique(inImageQuery$scientificName_Species), collapse = " & "),
         " queried"
       )

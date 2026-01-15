@@ -546,7 +546,7 @@ for (i in 1:nrow(firstpass_df)) {
       
       firstpass_df[i, ]$Notes <- paste0(
         "Species Mismatch: ",
-        row$scientificName_Species, " entered, ",
+        row$scientificName_Species, " entered ",
         paste(unique(inImageQuery$scientificName_Species), collapse = " & "),
         " queried"
       )
@@ -620,7 +620,7 @@ for (i in 1:nrow(df_remainingmissmatch)) {
       
       df_remainingmissmatch[i, ]$Notes <- paste0(
         "Species Mismatch: ",
-        row$scientificName_Species, " entered, ",
+        row$scientificName_Species, " entered ",
         paste(unique(inImageQuery$scientificName_Species), collapse = " & "),
         " queried"
       )
