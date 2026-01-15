@@ -134,19 +134,6 @@ firstpass_df$numbericID_2_save <- firstpass_df$IndividualID_2
 firstpass_df$numbericID_n1_save <- firstpass_df$IndividualID_n1
 firstpass_df$numbericID_n_save <- firstpass_df$IndividualID_n
 
-
-# # Reformat individual IDs with NEON format
-# firstpass_df$IndividualID_1 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_1)
-# 
-# firstpass_df$IndividualID_2 <- ifelse(firstpass_df$IndividualID_2=="NA", NA, 
-#                                       paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_2))
-# 
-# firstpass_df$IndividualID_n1 <- ifelse(firstpass_df$IndividualID_n1=="NA", NA, 
-#                                        paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_n1))
-# 
-# firstpass_df$IndividualID_n <- ifelse(firstpass_df$IndividualID_n=="NA", NA, 
-#                                       paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_n))
-
 # Reformat individual IDs with NEON format for file naming
 firstpass_df$IndividualID_1 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_1)
 firstpass_df$IndividualID_2 <- paste0("NEON.BET.", firstpass_df$domainID, ".", firstpass_df$IndividualID_2)
@@ -548,92 +535,6 @@ dim(table(matched_df$imageID))/dim(firstpass_df)[1]
 
 plot(df_remainingmissmatch$NumberOfBeetles, df_remainingmissmatch$NumberOfBeetlesInQuery)
 abline(a = 0, b = 1, col = "red") 
-
-#Boxes are often grouped by scientificNameAuthorship For all those remaining, we will break it out by idntifier or source material.
-start<-dim(table(matched_df$imageID))[1]
-for (i in 1:nrow(df_remainingmissmatch)) {
-  row <- df_remainingmissmatch[i, ]
-  
-  # Filter matching individuals
-  inImageQuery <- subset(combined_data_available, 
-                         domainID == row$domainID &
-                           scientificName_Species == row$scientificName_Species &
-                           yearCollected == row$yearCollected &
-                           numbericID >= row$numbericID_1 & 
-                           numbericID <= row$numbericID_n)
-  #Filter by ID Status
-  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
-
-  fineScientificNameAuthorship <- subset(combined_data_available, 
-                                         domainID == row$domainID &
-                                           scientificName_Species == row$scientificName_Species &
-                                           yearCollected == row$yearCollected &
-                                           numbericID == row$numbericID_1)$scientificNameAuthorship
-  print(table(inImageQuery$scientificNameAuthorship))
-  print(paste0("ID1, indicates authorship: ",fineScientificNameAuthorship))
-  inImageQuery<-subset(inImageQuery, scientificNameAuthorship==fineScientificNameAuthorship)
-  
-  num_found <- nrow(inImageQuery)
-  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
-  
-  if (num_found == row$NumberOfBeetles) {
-    image_id <- row$newImageID
-    inImageQuery$imageID <- image_id
-    inImageQuery$notes <- row$Notes
-    inImageQuery<-inImageQuery %>%
-      arrange(individualID)
-    inImageQuery$Order<-c(1:nrow(inImageQuery))
-    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    
-    matched_df <- rbind(matched_df, inImageQuery)
-  } 
-}
-start
-dim(table(matched_df$imageID))[1]
-
-df_remainingmissmatch<-df_remainingmissmatch %>%
-  filter(!(newImageID %in% matched_df$imageID))
-
-#After scientificNameAuthorship refernce material "identificationReferences" is the next big grouping.
-start<-dim(table(matched_df$imageID))[1]
-for (i in 1:nrow(df_remainingmissmatch)) {
-  row <- df_remainingmissmatch[i, ]
-  
-  # Filter matching individuals
-  inImageQuery <- subset(combined_data_available, 
-                         domainID == row$domainID &
-                           scientificName_Species == row$scientificName_Species &
-                           yearCollected == row$yearCollected &
-                           numbericID >= row$numbericID_1 & 
-                           numbericID <= row$numbericID_n)
-  #Filter by ID Status
-  inImageQuery<-subset(inImageQuery, ID_status==row$ExpertOrPara)
-  fineScientificNameAuthorship <- subset(combined_data_available, 
-                                         domainID == row$domainID &
-                                           scientificName_Species == row$scientificName_Species &
-                                           yearCollected == row$yearCollected &
-                                           numbericID == row$numbericID_1)$identificationReferences
-  print(table(inImageQuery$identificationReferences))
-  print(paste0("ID1, indicates authorship: ",fineScientificNameAuthorship))
-  inImageQuery<-subset(inImageQuery, identificationReferences==fineScientificNameAuthorship)
-  
-  num_found <- nrow(inImageQuery)
-  df_remainingmissmatch$NumberOfBeetlesInQuery[i] <- num_found
-
-  if (num_found == row$NumberOfBeetles) {
-    image_id <- row$newImageID
-    inImageQuery$imageID <- image_id
-    inImageQuery$notes <- row$Notes
-    inImageQuery<-inImageQuery %>%
-      arrange(individualID)
-    inImageQuery$Order<-c(1:nrow(inImageQuery))
-    inImageQuery$NumberOfBeetlesInTray<-row$NumberOfBeetles
-    
-    matched_df <- rbind(matched_df, inImageQuery)
-  } 
-}
-start
-dim(table(matched_df$imageID))[1]
 
 #manual edits from notes:
 table(df_remainingmissmatch$Notes)
