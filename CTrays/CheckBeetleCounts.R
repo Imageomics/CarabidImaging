@@ -517,8 +517,8 @@ for (i in 1:nrow(firstpass_df)) {
       combined_data_available,
       individualID %in% beetle_ids
     )
-    
-    if (nrow(inImageQuery) == 0) {
+    num_found <- nrow(inImageQuery)
+    if (num_found == 0) {
       print(paste0(row$trayID, " No record by ID"))
       firstpass_df[i, ]$Notes <- "No record by ID"
       next
@@ -526,22 +526,42 @@ for (i in 1:nrow(firstpass_df)) {
     
     # If all queried individuals match the species
     if (all(inImageQuery$scientificName_Species == row$scientificName_Species)) {
-      
-      image_id <- row$newImageID
-      inImageQuery$imageID <- image_id
-      
-      # ---- CORRECT ORDER ASSIGNMENT ----
-      order_map <- setNames(seq_along(beetle_ids), beetle_ids)
-      inImageQuery$Order <- order_map[as.character(inImageQuery$individualID)]
-      # ---------------------------------
-      
-      inImageQuery$NumberOfBeetlesInTray <- row$NumberOfBeetles
-      inImageQuery$trayID <- row$trayID
-      inImageQuery$notes <- row$Notes
-      inImageQuery$processingNotes <- row$processingNotes
-      
-      matched_df <- rbind(matched_df, inImageQuery)
-      
+      #and if number of individuals matched
+      if (num_found == row$NumberOfBeetles) { 
+        image_id <- row$newImageID
+        inImageQuery$imageID <- image_id
+        
+        # ---- CORRECT ORDER ASSIGNMENT ----
+        order_map <- setNames(seq_along(beetle_ids), beetle_ids)
+        inImageQuery$Order <- order_map[as.character(inImageQuery$individualID)]
+        # ---------------------------------
+        
+        inImageQuery$NumberOfBeetlesInTray <- row$NumberOfBeetles
+        inImageQuery$trayID <- row$trayID
+        inImageQuery$notes <- row$Notes
+        inImageQuery$processingNotes <- row$processingNotes
+        
+        matched_df <- rbind(matched_df, inImageQuery)
+      }
+      else {
+        inImageQuery$NumberOfBeetlesInTray <- row$NumberOfBeetles
+        
+        outfile <- paste0("./NEONIndividualLinkageChecks/QueryUnder/CHECK_",
+                          gsub(" ", "_", row$scientificName), "-",
+                          "Ctray-",
+                          "Y", row$yearCollected, "-",
+                          row$IndividualID_1, "-", row$IndividualID_n, ".csv")
+        inImageQuery<-add_column(inImageQuery, Order = "", .after = "individualID")
+        inImageQuery<-add_column(inImageQuery, Present = "", .after = "individualID")
+        inImageQuery$notes<-row$Notes
+        inImageQuery$processingNotes<-row$processingNotes
+        inImageQuery$trayID<-row$trayID
+        inImageQuery$newImageID<-row$newImageID
+        inImageQuery$imagePath<-paste0("/Images/FinalImages/",finalDataset)
+        
+        write.csv(inImageQuery %>%
+                    arrange(individualID), outfile, row.names = FALSE)
+      }
     } else {
       
       firstpass_df[i, ]$Notes <- paste0(
