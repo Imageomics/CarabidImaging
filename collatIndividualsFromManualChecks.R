@@ -64,6 +64,7 @@ table(QueryMannual_Unique$dir)
 #Read in first file to create the seed for the dataset
 Checked_df <- as.data.frame(read_excel(paste0(QueryMannual_Unique$dir[1],QueryMannual_Unique$file[1]),
                                                  sheet = 1))
+
 Checked_df$imageID<-paste0(substr(QueryMannual_Unique$file[1], 
                                             7, (nchar(QueryMannual_Unique$file[1])-4)),
                                      "png")
@@ -95,6 +96,40 @@ if (length(missing_cols) > 0) {
   for (col in missing_cols) {
     Checked_df[[col]] <- NA
   }
+}
+
+
+#Often the notes, processing notes, image path, and tray ID will only have some but not all row filled, here w back fill those
+notes <- unique(Checked_df$notes)
+notes <- notes[!is.na(notes)]
+Checked_df$notes <- if (length(notes) == 0) {
+  NA_character_
+} else {
+  notes[which.max(nchar(notes))]
+}
+
+notes <- unique(Checked_df$processingNotes)
+notes <- notes[!is.na(notes)]
+Checked_df$processingNotes <- if (length(notes) == 0) {
+  NA_character_
+} else {
+  notes[which.max(nchar(notes))]
+}
+
+notes <- unique(Checked_df$imagePath)
+notes <- notes[!is.na(notes)]
+Checked_df$imagePath <- if (length(notes) == 0) {
+  NA_character_
+} else {
+  notes[which.max(nchar(notes))]
+}
+
+notes <- unique(Checked_df$trayID)
+notes <- notes[!is.na(notes)]
+Checked_df$trayID <- if (length(notes) == 0) {
+  NA_character_
+} else {
+  notes[which.max(nchar(notes))]
 }
 
 Checked_df$processingNotes<-paste0(sub(".*/([^/]+)/Checked/?$", "\\1", QueryMannual_Unique$dir[1]), 
@@ -149,6 +184,39 @@ for (i in 2:nrow(QueryMannual_Unique)) {
   
   # Reorder columns
   tmp <- tmp[, cols]
+  
+  #Often the notes, processing notes, image path, and tray ID will only have some but not all row filled, here w back fill those
+  notes <- unique(tmp$notes)
+  notes <- notes[!is.na(notes)]
+  tmp$notes <- if (length(notes) == 0) {
+    NA_character_
+  } else {
+    notes[which.max(nchar(notes))]
+  }
+  
+  notes <- unique(tmp$processingNotes)
+  notes <- notes[!is.na(notes)]
+  tmp$processingNotes <- if (length(notes) == 0) {
+    NA_character_
+  } else {
+    notes[which.max(nchar(notes))]
+  }
+  
+  notes <- unique(tmp$imagePath)
+  notes <- notes[!is.na(notes)]
+  tmp$imagePath <- if (length(notes) == 0) {
+    NA_character_
+  } else {
+    notes[which.max(nchar(notes))]
+  }
+  
+  notes <- unique(tmp$trayID)
+  notes <- notes[!is.na(notes)]
+  tmp$trayID <- if (length(notes) == 0) {
+    NA_character_
+  } else {
+    notes[which.max(nchar(notes))]
+  }
   
   tmp$processingNotes<-paste0(sub(".*/([^/]+)/Checked/?$", "\\1", QueryMannual_Unique$dir[i]), 
                                      "- Manually Checked; ",

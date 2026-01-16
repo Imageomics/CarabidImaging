@@ -73,8 +73,9 @@ dim(all_out)
 #Remove entries where the photo does not exist
 list_images<-read.csv("./allImages.csv")
 dim(all_out)
+subset(all_out, is.na(imageID))
 all_out<-all_out %>%
-  filter((imageID %in% list_images$imageID))
+  filter((substr(imageID, 1, (nchar(imageID)-4)) %in% substr(list_images$imageID, 1 , (nchar(list_images$imageID)-4))))
 dim(all_out)
 
 # Look at duplicates
