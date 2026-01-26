@@ -137,10 +137,10 @@ Renames and copies images to final location using standardized nomenclature enco
 
 **Naming Convention:**
 ```
-{Species}_{TrayType}tray_Y{Year}_{FirstIndividualID}-{LastIndividualID}.JPG
+{Species}_{TrayType}tray_Y{Year}_{FirstIndividualID}-{LastIndividualID}.png
 ```
 
-Example: `Amara_tenax_Btray_Y2018_NEON.BET.D09.002825-NEON.BET.D09.003611.JPG`
+Example: `Amara_tenax_Btray_Y2018_NEON.BET.D09.002825-NEON.BET.D09.003611.png`
 
 ---
 
@@ -622,9 +622,9 @@ Images renamed to encode metadata for AI-ready dataset organization:
 
 **Examples:**
 ```
-Amara_tenax_Btray_Y2018_NEON.BET.D09.002825-NEON.BET.D09.003611.JPG
+Amara_tenax_Btray_Y2018_NEON.BET.D09.002825-NEON.BET.D09.003611.png
 Carabus_goryi_Atray_Y2020_NEON.BET.D15.001234.PNG
-Pterostichus_melanarius_Ctray_Y2019_NEON.BET.D03.005678-NEON.BET.D03.005702.JPG
+Pterostichus_melanarius_Ctray_Y2019_NEON.BET.D03.005678-NEON.BET.D03.005702.png
 ```
 
 ### Individual ID Format
