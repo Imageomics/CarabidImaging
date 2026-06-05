@@ -5,9 +5,11 @@
 Data sources with consistently high-quality images and complete metadata follow a streamlined two-step workflow:
 
 ### Step 1: Metadata Validation and Individual Linkage
+
 **Script:** `[DataSource]/CheckBeetleCounts.R`
 
 #### Input
+
 - `BeetleMetadata.xlsx` - Google Sheet with manually entered metadata including:
   - Four redundant individual IDs (first, second, penultimate, last specimens)
   - Species scientific name
@@ -18,6 +20,7 @@ Data sources with consistently high-quality images and complete metadata follow 
   - Total specimen count
 
 #### Process
+
 1. Loads NEON beetle database records via neonUtilities API
 2. Retrieves both parataxonomist (`bet_parataxonomistID`) and expert taxonomist (`bet_expertTaxonomistIDProcessed`) identifications
 3. Combines datasets with expert IDs superseding parataxonomist records where both exist
@@ -35,19 +38,22 @@ Data sources with consistently high-quality images and complete metadata follow 
 8. Creates final lists of images already verified (checks for existing files in `Checked/` subdirectories and removes from output to avoid redundant work)
 
 #### Quality Control Features
+
 - **Conservative Corrections:** Automatic updates only when all four specimen queries return unanimous agreement
 - **Cascading Updates:** Domain ID corrections trigger reformatting of all individual IDs within the tray (format: NEON.BET.D##.######)
 - **Comprehensive Documentation:** All automated corrections logged in processing notes with query details
 
 #### Outputs
+
 - `BeetleMetadata[DataSource]Individuals.csv` - Successfully linked specimens with complete NEON metadata
 - `BeetleMetadata[DataSource].csv` - Image-level metadata with processing notes and validation results
 - Flagged CSV files in `NEONIndividualLinkageChecks/QueryOver/`, `QueryUnder/`, or `QueryZero/` directories
 
 
 ## Running all ABTray Processes
+
 - `runAllABTrayProcesses.sh` is intended to execute scripts from the subfolders below the result in final images of the A and B Trays (ABTrays, FirstPass, and Belitz, and the "Pulling all data source together" scripts). The shell script submits a Slurm job that kicks off each script in the appropriate order. Unfortunately, some steps need to be performed manually before running, as rclone does not move Google Sheets; only exported versions, such as CSV and XLSX, are supported. 
-  - Before running, the following should be downloaded as xlsx from google drive and uploaded to OSC
+  - Before running, the following should be downloaded as xlsx from Google Drive and uploaded to OSC:
     - `BeetleMetadata`
     - `catalog_firstPass_renamedMetadata`
     - `catalog_Belitz_renamedMetadata`
@@ -56,6 +62,7 @@ Data sources with consistently high-quality images and complete metadata follow 
     - `/NEONIndividualLinkageChecks/QueryOver/Checked/[all google sheets]`
 
 ### Step 2: Image Renaming and Organization
+
 **Script:** `[DataSource]/copyImagesRename.sh`
 
 Renames and copies images to final location using standardized nomenclature encoding specimen metadata. Images moved to `/Images/FinalImages/[DataSource]/` directory.
@@ -66,5 +73,3 @@ Renames and copies images to final location using standardized nomenclature enco
 ```
 
 Example: `Amara_tenax_Btray_Y2018_NEON.BET.D09.002825-NEON.BET.D09.003611.png`
-
----

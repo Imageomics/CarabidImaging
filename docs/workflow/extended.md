@@ -1,12 +1,11 @@
 # Bespoke Workflow
 
-## Extended Workflow (FirstPass, Belitz)
+Historical imaging campaigns ([FirstPass](../data/data-sources.md#firstpass) and [Belitz](../data/data-sources.md#belitz) data) with variable image quality require an additional initial quality filtering stage before metadata validation. This specialized extended workflow is described below.
 
-Historical imaging campaigns with variable image quality require an additional initial quality filtering stage before metadata validation.
+## Stage 1: Quality Filtering and Initial Renaming
 
-### Stage 1: Quality Filtering and Initial Renaming
+### Step 1A: Quality Assessment and Filtering
 
-#### Step 1A: Quality Assessment and Filtering
 **Script:** `[DataSource]/generateFirstImageRenaming.R`
 
 **Input:** 
@@ -26,7 +25,8 @@ Historical imaging campaigns with variable image quality require an additional i
 - `catalog_[DataSource]_filesToRename.csv` - List mapping original filenames to new standardized names
 - `catalog_[DataSource]_renamedMetadataTemplate.csv` - Template for comprehensive metadata entry with columns for order verification and marking
 
-#### Step 1B: Copy and Rename Quality-Filtered Images
+### Step 1B: Copy and Rename Quality-Filtered Images
+
 **Script:** `[DataSource]/copyImagesWithFirstRename.sh`
 
 Copies quality-filtered images from original directory and renames according to generated file list.
@@ -37,7 +37,8 @@ Copies quality-filtered images from original directory and renames according to 
 - Applies standardized naming convention
 - Reports any missing files
 
-#### Combined Execution
+### Combined Execution
+
 **Script:** `[DataSource]/renameImagesWorkflow.sh`
 
 Slurm job script that executes both quality filtering steps in sequence:
@@ -46,7 +47,7 @@ Slurm job script that executes both quality filtering steps in sequence:
 
 **Note:** This initial quality filtering workflow is a prerequisite that must be completed before running the main processing pipeline (`runAllTrayProcesses.sh`).
 
-### Stage 2: Manual Metadata Transcription
+## Stage 2: Manual Metadata Transcription
 
 After quality filtering, student researchers perform comprehensive metadata entry using the generated template:
 
@@ -62,7 +63,8 @@ After quality filtering, student researchers perform comprehensive metadata entr
 
 **Output:** `catalog_[DataSource]_renamedMetadata.xlsx` - Complete metadata ready for validation
 
-### Stage 3: Metadata Validation and Individual Linkage
+## Stage 3: Metadata Validation and Individual Linkage
+
 **Script:** `[DataSource]/CheckBeetleCounts.R`
 
 **Input:** `catalog_[DataSource]_renamedMetadata.xlsx`
@@ -74,7 +76,8 @@ Identical validation process to standard workflow (see ABTrays description above
 - `catalog_[DataSource]_renamedMetadataClean.csv` - Validated image metadata
 - Flagged records in `NEONIndividualLinkageChecks/` directories
 
-### Stage 4: Final Image Renaming
+## Stage 4: Final Image Renaming
+
 **Script:** `[DataSource]/copyImagesWithSecondRename.sh`
 
 **Input:** `catalog_[DataSource]_renamedMetadataClean.csv`

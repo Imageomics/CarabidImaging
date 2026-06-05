@@ -1,8 +1,9 @@
 # Data Integration and Quality Control
 
-After all data sources are processed, root-level scripts aggregate and harmonize results:
+After all data sources are processed, root-level scripts aggregate and harmonize results, as described below.
 
 ## Step 1: Image Metadata Aggregation
+
 **Script:** `collatImageMetadata.R`
 
 **Inputs:**
@@ -23,6 +24,7 @@ After all data sources are processed, root-level scripts aggregate and harmonize
 **Output:** `allImages.csv` - Master image catalog
 
 ## Step 2: Manual Verification Integration
+
 **Script:** `collatIndividualsFromManualChecks.R`
 
 **Inputs:**
@@ -51,7 +53,9 @@ After all data sources are processed, root-level scripts aggregate and harmonize
 8. **Documentation:** Appends query type and manual verification status to processing notes
 
 **Output:** `BeetleMetadataManualIndividuals.csv` - All manually verified specimens with complete metadata
-### Step 3: Complete Dataset Assembly
+
+## Step 3: Complete Dataset Assembly
+
 **Script:** `collatIndividualsFromAllSources.R`
 
 **Inputs:**

@@ -7,6 +7,7 @@ Each data source follows a specific processing workflow based on image quality a
 For the standard workflow, the entire pipeline can be run through the `runAllTrayProcesses.sh` script. Once this process is completed, `rclone_sendFilesToStudents.sh` is run manually to generate and share the completed spreadsheet for manual review.
 
 ### Complete Pipeline Execution
+
 **Script:** `runAllTrayProcesses.sh`
 
 Orchestrates the entire processing workflow as a single Slurm job, executing all steps in correct sequence with appropriate delays for file system synchronization.
