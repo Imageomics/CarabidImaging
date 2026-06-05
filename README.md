@@ -17,10 +17,9 @@ This repository contains the complete automated workflow for digitizing ground b
 
 ---
 
-
 ## Repository Structure
 
-The repository is organized by data source, with each folder containing scripts for preprocessing images from that specific imaging campaign. This data collection effort combined five data streams, two (FirstPass and Belitz) were from earlier partial digitization efforts that did not utilize our [SOP](https://docs.google.com/document/d/1LAFRHcIYBlsGHMpv6suvsMbSYi10SKChOLsU5JlXlqw/edit?usp=sharing), so they required some bespoke scripts and iterative processes to match.
+The repository is organized by data source, with each folder containing scripts for preprocessing images from that specific imaging campaign. This data collection effort combined five data streams, two (FirstPass and Belitz) were from earlier partial digitization efforts that did not utilize our [SOP](https://imageomics.github.io/beetle-imaging-procedure), so they required some bespoke scripts and iterative processes to match. These are described in the [extended workflow documentation](docs/workflow/extended.md).
 
 The primary re-usable workflow is run through `runAllTrayProcesses.sh`, which implements the `ABTrays`, `CTrays`, and `SmallBeetles` processing.
 
@@ -60,7 +59,7 @@ CarabidImaging/
 
 ---
 
-## Complete Workflow Overview
+## Workflow Overview
 
 ### Stage 0: Data Synchronization
 __Moving data between local and Google Drive__
@@ -73,60 +72,14 @@ Automated synchronization of data between Google Drive and the computing environ
 - `rclone_sendFilesToStudents.sh`
   - This script automates the rclone copying of files that need to be individually checked by students from OSC to the appropriate Google Drive subfolders. This script should only be run after manually checking that all Google Sheets in the `Checked` subfolders of `NEONIndividualLinkageChecks` have been downloaded as xlsx files and reuploaded to the drive. These files can then be moved over to OSC with the `rclone.sh` script detailed above, and only then should a list of desired files be derived from the `CheckBeetleCounts.R` scripts below.
 
----
-
-## Requirements
-
-### R Packages
-```r
-neonUtilities  # NEON API data retrieval and database access
-readxl         # Excel file reading for metadata spreadsheets
-dplyr          # Data manipulation and transformation
-tibble         # Enhanced data frames with quality checks
-stringr        # String processing for validation
-bit            # Set operations for column comparison
-```
-
-### External Data Files
-
-**NEON Database (automatically downloaded):**
-- Data Product ID: DP1.10022.001 (Ground beetles sampled from pitfall traps)
-- Retrieved via neonUtilities API with personal token
-- Includes both released and provisional data
-
-**NEON Availability Data (provided by NEON staff):**
-- `occurrences.csv` - Specimen occurrence records with availability flags
-- `determinations.csv` - Identification history
-- `shipments.csv` - Specimen loan and shipment tracking
-
-**Metadata Spreadsheets:**
-- `BeetleMetadata.xlsx` - Manual metadata entry for ABTrays, CTrays, SmallBeetles
-- `catalog_firstPass.xlsx` - Initial FirstPass data with quality annotations
-- `catalog_firstPass_renamedMetadata.xlsx` - FirstPass comprehensive metadata
-- `catalog_Belitz.xlsx` - Initial Belitz data with quality annotations
-- `catalog_Belitz_renamedMetadata.xlsx` - Belitz comprehensive metadata
-
-**NEON API Token:**
-- Stored in `~/NEON_Token_AE`
-- Required for database queries
-- Obtain from NEON data portal user account
-
-### Computing Environment
-
-**Current Configuration:**
-- Ohio Supercomputer Center (OSC)
-- Slurm job scheduling
-- R version: 4.4.0
-- GCC version: 12.3.0
-
-**Path Configuration:**
-- Google Drive sync via rclone
-- Paths in scripts may require adjustment for other computing environments
+Remaining workflow description is provided in the [docs/workflow/ directory](docs/workflow/). The prequisites for data and code are described in [`docs/data-code-requirements`](docs/data-code-requirements.md).
 
 ---
+
 ## Citation
 
-If you use this workflow or dataset, please cite:
+If you use this workflow or dataset, please cite this repo, our [paper], and the [dataset]:
+
 **Workflow Paper:**
 East, A., et al. (in prep). From collection trays to AI-ready data: An operational framework for automated entomological specimen processing.
 
@@ -150,7 +103,26 @@ S. Record and A. East were additionally supported by the US National Science Fou
 Any opinions, findings and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation or US Department of Agriculture.
 
 ---
+
 ## Appendix: Directory Structure
+
+### Docs
+
+```
+docs/
+├── data/
+│   ├── data-sources.md              # Description of each of the beetle image data streams
+│   ├── naming-conventions.md        # Description of image and metadata naming conventions
+│   └── pipeline-output.md           # Description of key metadata files
+├── workflow/
+│   ├── extended.md	                 # Description of bespoke workflow for FirstPass, Belitz
+│   ├── overview.md                  # Overview of the image alignment worklfow
+│   ├── standard.md                  # Description of the workflow, by tray type
+│   ├── manual-validation.md         # Description of manual checks for misaligned image-metadata
+│   ├── QC-data-integration.md       # Description of quality control checks
+│   └── validation.md                # Description of automated metadata correction processes
+└── data-code-requirements.md.       # Description of code and data requirements
+```
 
 ### Complete Working Directory Layout
 
@@ -229,5 +201,3 @@ CarabidImaging/
 ├── allImages.csv                    # FINAL OUTPUT
 └── allIndividuals.csv               # FINAL OUTPUT
 ```
-
-
