@@ -13,8 +13,8 @@ For the standard workflow, the entire pipeline can be run through the `runAllTra
 Orchestrates the entire processing workflow as a single Slurm job, executing all steps in correct sequence with appropriate delays for file system synchronization.
 
 **Prerequisites:** 
-- FirstPass and Belitz initial quality filtering workflows must be completed beforehand (see Extended Workflow section)
-- All manual verification XLSX files in `Checked/` subdirectories will be automatically integrated
+- FirstPass and Belitz initial quality filtering workflows must be completed beforehand (see [Extended Workflow section](extended.md)).
+- All manual verification XLSX files in `Checked/` subdirectories will be automatically integrated.
 
 **Execution Order:**
 ```bash
