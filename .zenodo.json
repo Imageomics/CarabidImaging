@@ -1,0 +1,57 @@
+{
+    "creators": [
+        {
+            "name": "East, Alyson",
+            "orcid": "0000-0003-1143-1255",
+            "affiliation": "University of Maine"
+        },
+        {
+            "name": "Cain, Nathan W.",
+            "orcid": "0009-0008-3597-9470",
+            "affiliation": "The Ohio State University"
+        },
+        {
+            "name": "Rayeed, S. M.",
+            "orcid": "0000-0001-7173-3429",
+            "affiliation": "Rensselaer Polytechnic Institute"
+        },
+        {
+            "name": "Stevens, Samuel",
+            "orcid": "0009-0000-9493-7766",
+            "affiliation": "The Ohio State University"
+        },
+        {
+            "name": "Liu, Fangxun",
+            "orcid": "",
+            "affiliation": "The Ohio State University"
+        },
+        {
+            "name": "Campolongo, Elizabeth G.",
+            "orcid": "0000-0003-0846-2413",
+            "affiliation": "Imageomics Institute & ABC Global Center, The Ohio State University"
+        }
+    ],
+    "description": "Code, documentation, and standard operating procedures for an accessible, high-throughput framework that turns batch photographs of pinned entomological specimens into individual specimen images with validated metadata linkages. The repository contains the R-based metadata capture and NEON ecological database querying scripts, the redundant-individualID validation and conservative auto-correction logic, and the foundation model computer vision pipeline (iterative Grounding DINO detection with LLaVA-NeXT verification followed by Segment Anything Model segmentation) that detects, spatially orders, crops, and links individual ground beetles (Carabidae) to their NEON Biorepository records. Demonstrated on 65,236 specimens across 3,649 trays and 518 species.",
+    "keywords": [
+        "imageomics",
+        "specimen digitization",
+        "natural history collections",
+        "Carabidae",
+        "computer vision",
+        "metadata validation",
+        "NEON",
+        "batch imaging"
+    ],
+    "title": "CarabidImaging",
+    "version": "<release version>",
+    "license": "MIT",
+    "publication_date": "YYYY-MM-DD",
+    "grants": [
+        {
+            "id": "021nxhr62::2118240"
+        }
+    ],
+    "references": [
+        "East, A., Cain, N. W., Rayeed, S. M., Stevens, S., Liu, F., & Campolongo, E. G. (in prep). From collection trays to AI-ready data: An operational framework for automated batch entomological specimen processing."
+    ]
+}
