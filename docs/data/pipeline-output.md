@@ -30,6 +30,13 @@
 
 ## Individual Metadata (`allIndividuals.csv`)
 
+> [!NOTE]
+> Most of these variables are from the NEON dataset, [Ground beetles sampled from pitfall traps (DP1.10022.001)](https://data.neonscience.org/data-products/DP1.10022.001); The pipeline accesses this dataset and links the metadata to the images, sourced as follows:
+> - All data under [Taxonomy](#taxonomy) is sourced from the NEON database, ***except*** for `scientificName_Species`, which we derive from the NEON data using substrings.
+> - [Spatial Context](#spatial-context) is all sourced directly from NEON data.
+> - [Temporal Context](#temporal-context) is all directly from NEON ***except*** for `yearCollected`, which is derived. 
+> - [Specimen Condition](#specimen-condition) and [Database Metadata](#database-metadata) are all directly sourced from NEON.
+
 ### Specimen Identification
 
 - `individualID` - NEON unique specimen identifier (format: NEON.BET.D##.######)
