@@ -1,0 +1,44 @@
+abstract: "Code, documentation, and standard operating procedures for an accessible, high-throughput framework that turns batch photographs of pinned entomological specimens into individual specimen images with validated metadata linkages. The repository contains the R-based metadata capture and NEON ecological database querying scripts, the redundant-individualID validation and conservative auto-correction logic, and the foundation model computer vision pipeline (iterative Grounding DINO detection with LLaVA-NeXT verification followed by Segment Anything Model segmentation) that detects, spatially orders, crops, and links individual ground beetles (Carabidae) to their NEON Biorepository records. Demonstrated on 65,236 specimens across 3,649 trays and 518 species."
+authors:
+- family-names: "East"
+  given-names: "Alyson"
+  orcid: "https://orcid.org/0000-0003-1143-1255"
+- family-names: "Cain"
+  given-names: "Nathan W."
+  orcid: "https://orcid.org/0009-0008-3597-9470"
+- family-names: "Rayeed"
+  given-names: "S. M."
+  orcid: "https://orcid.org/0000-0001-7173-3429"
+- family-names: "Stevens"
+  given-names: "Samuel"
+  orcid: "https://orcid.org/0009-0000-9493-7766"
+- family-names: "Liu"
+  given-names: "Fangxun"
+- family-names: "Campolongo"
+  given-names: "Elizabeth G."
+  orcid: "https://orcid.org/0000-0003-0846-2413"
+cff-version: 1.2.0
+date-released: "YYYY-MM-DD"
+identifiers:
+  - description: "The GitHub release URL of tag <version>."
+    type: url
+    value: "https://github.com/Imageomics/CarabidImaging/releases/tag/<tag-name>"
+  - description: "The GitHub URL of the commit tagged with <tag-name>."
+    type: url
+    value: "https://github.com/Imageomics/CarabidImaging/tree/<commit-hash>" # Update on release
+keywords:
+  - imageomics
+  - specimen digitization
+  - natural history collections
+  - Carabidae
+  - computer vision
+  - metadata validation
+  - NEON
+  - batch imaging
+license: MIT
+message: "If you find this software helpful in your research, please cite both the software and our paper."
+repository-code: "https://github.com/Imageomics/CarabidImaging"
+title: "CarabidImaging"
+version: <release version>
+#doi: <version-agnostic DOI from Zenodo>
+type: software
