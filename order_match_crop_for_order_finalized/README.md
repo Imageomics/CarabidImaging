@@ -51,13 +51,35 @@ python crop_and_link.py \
     --output              /path/to/Cropped
 ```
 
-### `run_pipeline.sh`
-Runs both steps end-to-end: step 1 interactively, step 2 as an 8-task SLURM array job.
+### `crop_scalebars.py`
+Crops the scalebar out of each tray image, mirroring the manual-bbox workflow used for beetles.
+
+Two sources are merged (manual boxes override the automatic ones, just like `merge_annotations.py`):
+
+- **Base** — `Scalebars.csv` (Moondream auto-detections), one row per tray.
+- **Override** — `ScalebarAnnotations*.xml` (manual CVAT export, label `Scalebar`).
+
+Each scalebar box is cropped and saved as `scalebars/{tray}_scalebar.png`. Dual-tray (`-and-`) images are split at the Y-midpoint into `_Tray1` / `_Tray2`, matching the beetle convention. Supports SLURM array sharding via `--task` / `--total-tasks`.
 
 ```bash
-bash run_pipeline.sh             # run both steps
-bash run_pipeline.sh --merge-only  # only merge annotations
-bash run_pipeline.sh --crop-only   # only submit the crop job
+python crop_scalebars.py \
+    --scalebar-csv        /path/to/Scalebar/Scalebars.csv \
+    --scalebar-xml        /path/to/ScalebarAnnotations1.xml /path/to/ScalebarAnnotations2.xml \
+    --images-abtray       /path/to/FinalImages/ABTrays \
+    --images-ctray        /path/to/FinalImages/CTrays \
+    --images-smallbeetles /path/to/FinalImages/SmallBeetles \
+    --output              /path/to/Cropped
+```
+
+### `run_pipeline.sh`
+Runs all steps end-to-end: step 1 interactively, steps 2 and 3 as 8-task SLURM array jobs.
+
+```bash
+bash run_pipeline.sh               # run all steps
+bash run_pipeline.sh --merge-only     # only merge annotations
+bash run_pipeline.sh --crop-only      # only submit the beetle crop job
+bash run_pipeline.sh --scalebar-only  # only submit the scalebar crop job
+bash run_pipeline.sh --no-scalebar    # merge + beetle crop, skip scalebars
 ```
 
 ## Output structure
@@ -67,7 +89,8 @@ Cropped/
 ├── cropped/          # beetle crops named {tray}_{N}.png, in spatial order
 ├── numbered_trays/   # full tray images with numbered bounding boxes (QC)
 ├── review/           # trays where pred count != true count
-└── no_metadata/      # trays with no matching individualID metadata
+├── no_metadata/      # trays with no matching individualID metadata
+└── scalebars/        # one scalebar crop per tray: {tray}_scalebar.png
 ```
 
 ## Metadata sources

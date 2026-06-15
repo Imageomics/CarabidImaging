@@ -11,10 +11,15 @@
 #   Crops beetles in spatial order and renames with individualIDs
 #   → output in Output-Finalized/Cropped/
 #
+# STEP 3 (SLURM array, fast — one scalebar box per tray):
+#   Crops the scalebar out of each tray (Moondream CSV + manual CVAT override)
+#   → output in Output-Finalized/Cropped/scalebars/
+#
 # Usage:
-#   bash run_pipeline.sh            # runs both steps
-#   bash run_pipeline.sh --merge-only   # only run step 1
-#   bash run_pipeline.sh --crop-only    # only run step 2 (needs merged CSV)
+#   bash run_pipeline.sh              # runs all steps
+#   bash run_pipeline.sh --merge-only     # only run step 1
+#   bash run_pipeline.sh --crop-only      # only run step 2 (needs merged CSV)
+#   bash run_pipeline.sh --scalebar-only  # only run step 3
 # =============================================================================
 
 set -euo pipefail
@@ -23,14 +28,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---- Paths (edit if needed) ----
 DETECTIONS="/fs/ess/PAS2136/CarabidImaging/Output-Finalized/detections_all.csv"
-MERGED="/fs/ess/PAS2136/CarabidImaging/Output-Merged/detections_merged.csv"
+MERGED="/fs/ess/PAS2136/CarabidImaging/Output-Finalized/detections_merged.csv"
 XML="/fs/ess/PAS2136/CarabidImaging/manualAnnotations.xml"
 IMAGES_ABTRAY="/fs/ess/PAS2136/CarabidImaging/Images/FinalImages/ABTrays"
 IMAGES_CTRAY="/fs/ess/PAS2136/CarabidImaging/Images/FinalImages/CTrays"
 IMAGES_SMALLBEETLES="/fs/ess/PAS2136/CarabidImaging/Images/FinalImages/SmallBeetles"
 INDIVIDUALS="/fs/ess/PAS2136/CarabidImaging/allIndividuals.csv"
 ALLIMAGES="/fs/ess/PAS2136/CarabidImaging/allImages.csv"
-OUTPUT="/fs/ess/PAS2136/CarabidImaging/Output-Merged/Cropped"
+OUTPUT="/fs/ess/PAS2136/CarabidImaging/Output-Finalized/Cropped"
+
+# ---- Scalebar sources (step 3) ----
+SCALEBAR_CSV="/fs/ess/PAS2136/CarabidImaging/Output-Finalized/Scalebar/Scalebars.csv"
+SCALEBAR_XML1="/fs/ess/PAS2136/CarabidImaging/Output-Finalized/Scalebar/ScalebarAnnotations1.xml"
+SCALEBAR_XML2="/fs/ess/PAS2136/CarabidImaging/Output-Finalized/Scalebar/ScalebarAnnotations2.xml"
 
 # ---- SLURM settings for crop step ----
 NTASKS=8          # number of array tasks (splits ~3500 trays across 8 jobs)
@@ -43,10 +53,13 @@ PARTITION="nextgen"   # use "gpu" if PIL/image I/O benefits from GPU node memory
 # ---- Parse args ----
 MERGE=true
 CROP=true
+SCALEBAR=true
 for arg in "$@"; do
     case $arg in
-        --merge-only) CROP=false ;;
-        --crop-only)  MERGE=false ;;
+        --merge-only)    CROP=false;  SCALEBAR=false ;;
+        --crop-only)     MERGE=false; SCALEBAR=false ;;
+        --scalebar-only) MERGE=false; CROP=false ;;
+        --no-scalebar)   SCALEBAR=false ;;
     esac
 done
 
@@ -116,4 +129,50 @@ SLURM_SCRIPT
     echo "  ${OUTPUT}/numbered_trays/   — full tray images with numbered boxes (QC)"
     echo "  ${OUTPUT}/review/           — trays where count still doesn't match"
     echo "  ${OUTPUT}/no_metadata/      — trays with no matching metadata"
+fi
+
+# =============================================================================
+# STEP 3: Submit SLURM array job for scalebar cropping
+# =============================================================================
+if $SCALEBAR; then
+    echo ""
+    echo "============================================================"
+    echo "STEP 3: Submitting SLURM array job for scalebar cropping (${NTASKS} tasks)"
+    echo "============================================================"
+
+    SB_JOB_SCRIPT=$(mktemp /tmp/scalebar_job_XXXX.sh)
+    cat > "${SB_JOB_SCRIPT}" << SLURM_SCRIPT
+#!/bin/bash
+#SBATCH --account=${ACCOUNT}
+#SBATCH --job-name=scalebar_crop
+#SBATCH --array=0-$((NTASKS - 1))
+#SBATCH --cpus-per-task=${CPUS}
+#SBATCH --mem=${MEM}
+#SBATCH --time=${TIME}
+#SBATCH --partition=${PARTITION}
+#SBATCH --output=${SCRIPT_DIR}/logs/scalebar_%A_%a.out
+#SBATCH --error=${SCRIPT_DIR}/logs/scalebar_%A_%a.err
+
+mkdir -p "${SCRIPT_DIR}/logs"
+
+echo "Task \${SLURM_ARRAY_TASK_ID} of ${NTASKS} starting on \$(hostname)"
+
+python3 "${SCRIPT_DIR}/crop_scalebars.py" \\
+    --scalebar-csv        "${SCALEBAR_CSV}" \\
+    --scalebar-xml        "${SCALEBAR_XML1}" "${SCALEBAR_XML2}" \\
+    --images-abtray       "${IMAGES_ABTRAY}" \\
+    --images-ctray        "${IMAGES_CTRAY}" \\
+    --images-smallbeetles "${IMAGES_SMALLBEETLES}" \\
+    --output              "${OUTPUT}" \\
+    --pad         0.1 \\
+    --task        \${SLURM_ARRAY_TASK_ID} \\
+    --total-tasks ${NTASKS}
+
+echo "Task \${SLURM_ARRAY_TASK_ID} done."
+SLURM_SCRIPT
+
+    mkdir -p "${SCRIPT_DIR}/logs"
+    sbatch "${SB_JOB_SCRIPT}"
+    echo "Job submitted. Logs will appear in: ${SCRIPT_DIR}/logs/"
+    echo "Scalebar crops will be written to: ${OUTPUT}/scalebars/"
 fi
