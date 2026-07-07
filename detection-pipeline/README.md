@@ -61,7 +61,6 @@ BioREPO-Processing/
 ├── detection_colorpicker.py   # Color-palette detection (Moondream)
 ├── detection_scalebar.py      # Scalebar detection (Moondream)
 ├── requirements.txt
-├── .gitignore
 └── README.md
 ```
 
