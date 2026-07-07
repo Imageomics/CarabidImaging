@@ -1,0 +1,26 @@
+# ------------------------------------------------------------------
+# BioREPO Vision Processing Pipeline — Python dependencies
+# Python 3.12 recommended
+# Install with:  pip install -r requirements.txt
+# ------------------------------------------------------------------
+
+# --- Core deep learning (beetle detection: Grounding DINO + LLaVA-Next) ---
+torch>=2.1.0
+# transformers pinned <5: v5 breaks custom model code used elsewhere in the
+# lab's stack; Grounding DINO + LlavaNext are fully supported in 4.44+.
+transformers>=4.44,<5
+accelerate>=0.30.0        # required for low_cpu_mem_usage / fp16 model loading
+sentencepiece>=0.1.99     # LLaVA / Mistral tokenizer backend
+
+# --- Vision / imaging ---
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# --- Data handling (metadata + result logs) ---
+pandas>=2.0.0
+
+# --- Utilities ---
+tqdm>=4.66.0
+
+# --- Moondream cloud VLM client (colorpicker + scalebar detection) ---
+moondream>=0.1.0
