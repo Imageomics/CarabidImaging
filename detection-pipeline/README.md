@@ -71,7 +71,7 @@ detection-pipeline/
 ```bash
 # 1. Clone
 git clone https://github.com/Imageomics/CarabidImaging
-cd BioREPO-Processing
+cd CarabidImaging/detection-pipeline
 
 # 2. Create an isolated environment (Python 3.12)
 python -m venv detection_env
