@@ -56,7 +56,7 @@ Every module is **zero-shot** (no training/fine-tuning required), is built for
 ## 🗂️ Repository Layout
 
 ```
-BioREPO-Processing/
+detection-pipeline/
 ├── detection_beetles.py       # Specimen detection (Grounding DINO)
 ├── detection_colorpicker.py   # Color-palette detection (Moondream)
 ├── detection_scalebar.py      # Scalebar detection (Moondream)
