@@ -27,8 +27,20 @@ def calculate_iou(box1, box2):
     area_box1 = (box1["x_max"] - box1["x_min"]) * (box1["y_max"] - box1["y_min"])
     area_box2 = (box2["x_max"] - box2["x_min"]) * (box2["y_max"] - box2["y_min"])
     union_area = float(area_box1 + area_box2 - intersection_area)
-    
+
     return intersection_area / union_area if union_area > 0 else 0.0
+
+
+def get_box_area(box):
+    return (box["x_max"] - box["x_min"]) * (box["y_max"] - box["y_min"])
+
+
+# NEW: mirrors the beetle script — flat Good/Recheck dirs would otherwise collide
+# whenever two source subdirectories contain the same filename, and the
+# resume-skip below would then wrongly skip the second one.
+def flat_name(image_dir, image_path):
+    rel = os.path.relpath(image_path, image_dir)
+    return rel.replace(os.sep, "__")
 
 
 def detect_colorpicker(image, model):
@@ -85,9 +97,6 @@ def detect_colorpicker(image, model):
         return [merged_box], False
 
     # Fallback: Select the smaller bounding box, flag for human verification
-    def get_box_area(box):
-        return (box["x_max"] - box["x_min"]) * (box["y_max"] - box["y_min"])
-
     smallest_box = min(all_detected_boxes, key=get_box_area)
     return [smallest_box], True
 
@@ -114,9 +123,9 @@ def main():
             if file.lower().endswith((".png", ".jpg", ".jpeg")):
                 if "SmallBeetles" not in root and "SmallBeetles" not in file:
                     all_images.append(os.path.join(root, file))
-    
+
     all_images.sort()
-    
+
     total_images = len(all_images)
     chunk_size = (total_images // args.num_tasks) + 1
     start_idx = args.task_id * chunk_size
@@ -125,10 +134,24 @@ def main():
 
     print(f"🚀 Task {args.task_id}/{args.num_tasks}: Processing indices {start_idx} to {end_idx} ({len(my_chunk)} items)...")
 
-    rows = []
+    fieldnames = ["image_name", "plotted_image", "num_colorpickers", "colorpicker_coords", "verify"]
+
+    # CHANGED: hoisted out of the loop — one stat per task, not one per image.
+    csv_exists = os.path.isfile(csv_path)
+
     for image_path in my_chunk:
+        base_name = flat_name(args.image_dir, image_path)
+
+        # NEW: resume-skip so a requeued SLURM task doesn't re-burn API calls.
+        if (os.path.exists(os.path.join(good_dir, base_name)) or
+                os.path.exists(os.path.join(recheck_dir, base_name))):
+            print(f"⏭️ Skipping {base_name} (Already processed)")
+            continue
+
         try:
-            image = Image.open(image_path).convert("RGB")
+            with Image.open(image_path) as src:
+                image = src.convert("RGB")
+
             coords_list, recheck_flag = detect_colorpicker(image, model)
 
             if len(coords_list) != 1:
@@ -138,24 +161,28 @@ def main():
             for box in coords_list:
                 draw.rectangle([box["x_min"], box["y_min"], box["x_max"], box["y_max"]], outline="red", width=2)
 
-            base_name = os.path.basename(image_path)
             target_dir = recheck_dir if recheck_flag else good_dir
             plotted_image_path = os.path.join(target_dir, base_name)
             image.save(plotted_image_path)
 
-            rows.append({
+            row_data = {
                 "image_name": image_path,
                 "plotted_image": plotted_image_path,
                 "num_colorpickers": len(coords_list),
                 "colorpicker_coords": str(coords_list),
-                "verify": recheck_flag
-            })
+                "verify": recheck_flag,
+            }
 
-            with open(csv_path, "w", newline="") as csvfile:
-                fieldnames = ["image_name", "plotted_image", "num_colorpickers", "colorpicker_coords", "verify"]
+            # CHANGED: append one row per image instead of rewriting the whole
+            # file (was O(n^2) and lost the entire log if interrupted mid-write).
+            with open(csv_path, "a", newline="") as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(rows)
+                if not csv_exists:
+                    writer.writeheader()
+                    csv_exists = True
+                writer.writerow(row_data)
+                csvfile.flush()
+                os.fsync(csvfile.fileno())
 
         except Exception as e:
             print(f"[ERROR] {image_path}: {e}")

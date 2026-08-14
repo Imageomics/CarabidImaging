@@ -17,32 +17,72 @@ class Detection:
     def __init__(self, image_paths, output_dir,
                  model_id="IDEA-Research/grounding-dino-base",
                  dino_prompt="a beetle.",
-                 metadata_file=None):
+                 metadata_file=None,
+                 use_llava=True):
 
         self.image_paths = image_paths
         self.output_dir = output_dir
         self.model_id = model_id
         self.dino_prompt = dino_prompt
         self.metadata_file = metadata_file
+        self.use_llava = use_llava
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.processor = AutoProcessor.from_pretrained(model_id)
         self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(self.device)
 
-        self.llava_processor, self.llava_model = self.setup_llava_model()
+        # CHANGED: lazy — nothing is downloaded or placed on GPU until the first
+        # completeness check actually runs. --no-llava skips it entirely.
+        self.llava_processor = None
+        self.llava_model = None
+
         self.df = self._load_metadata() if metadata_file else None
         self.imagenet_mean = [123.675, 116.28, 103.53]
 
     # ---------------- LLaVA ----------------
     def setup_llava_model(self):
+        if self.llava_model is not None:
+            return self.llava_processor, self.llava_model
+
         model_name = "llava-hf/llava-v1.6-mistral-7b-hf"
-        processor = LlavaNextProcessor.from_pretrained(model_name, use_fast=True)
-        model = LlavaNextForConditionalGeneration.from_pretrained(
+        self.llava_processor = LlavaNextProcessor.from_pretrained(model_name, use_fast=True)
+        self.llava_model = LlavaNextForConditionalGeneration.from_pretrained(
             model_name,
             torch_dtype=torch.float16,
             low_cpu_mem_usage=True
         ).to(self.device)
-        return processor, model
+        return self.llava_processor, self.llava_model
+
+    # NEW: completeness check on the masked (whited-out) tray.
+    # Returns True if LLaVA thinks uncounted beetles remain -> flag for recheck.
+    def llava_more_beetles(self, working_image):
+        if not self.use_llava:
+            return False
+
+        self.setup_llava_model()  # no-op after the first call
+
+        prompt = (
+            "[INST] <image>\n"
+            "This is a photo of an insect specimen tray. Solid gray rectangles cover "
+            "beetles that have already been counted -- ignore everything gray. "
+            "Is there at least one beetle visible that is NOT covered by a gray rectangle? "
+            "Answer with only 'yes' or 'no'. [/INST]"
+        )
+        inputs = self.llava_processor(
+            images=working_image, text=prompt, return_tensors="pt"
+        ).to(self.device, torch.float16)
+
+        with torch.no_grad():
+            output = self.llava_model.generate(
+                **inputs,
+                max_new_tokens=10,
+                do_sample=False,
+                pad_token_id=self.llava_processor.tokenizer.eos_token_id
+            )
+
+        answer = self.llava_processor.decode(output[0], skip_special_tokens=True)
+        answer = answer.split("[/INST]")[-1].strip().lower()
+        return answer.startswith("yes")
 
     # ---------------- Metadata ----------------
     def _load_metadata(self):
@@ -188,6 +228,59 @@ class Detection:
             image_np[y1:y2, x1:x2, :] = self.imagenet_mean
         return Image.fromarray(image_np.astype(np.uint8))
 
+    # NEW: one DINO pass on the (progressively masked) working image.
+    # Returns only boxes that are genuinely new relative to what's already kept.
+    def _detect_pass(self, working_image, thr, img_area, kept_boxes):
+        inputs = self.processor(images=working_image,
+                                text=self.dino_prompt,
+                                return_tensors="pt").to(self.device)
+
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+
+        detection_results = self.processor.post_process_grounded_object_detection(
+            outputs,
+            inputs.input_ids,
+            threshold=thr,
+            text_threshold=0.2,
+            target_sizes=[working_image.size[::-1]]
+        )
+
+        candidates = []
+        for result in detection_results:
+            for box, score in zip(result["boxes"], result["scores"]):
+                x1, y1, x2, y2 = box.tolist()
+                box_area = (x2 - x1) * (y2 - y1)
+                size_ratio = box_area / img_area
+
+                if size_ratio <= 0.05:
+                    candidates.append({
+                        'box': [x1, y1, x2, y2],
+                        'score': score.item(),
+                        'size_ratio': size_ratio
+                    })
+
+        # intra-pass cleanup
+        candidates = self.filter_overlapping_boxes(candidates)
+        candidates = self.filter_contained_boxes(candidates)
+
+        # drop anything that collides with an already-kept box
+        # (edge remnants around whiteout patches can re-trigger DINO)
+        new_boxes = []
+        for cand in candidates:
+            duplicate = False
+            for kept in kept_boxes:
+                if self.compute_iou(cand['box'], kept['box']) > 0.4:
+                    duplicate = True
+                    break
+                if self.compute_containment_ratio(cand['box'], kept['box']) > 0.6:
+                    duplicate = True
+                    break
+            if not duplicate:
+                new_boxes.append(cand)
+
+        return new_boxes
+
     # ---------------- Detection ----------------
     def detect_objects(self):
 
@@ -195,22 +288,28 @@ class Detection:
         csv_path = os.path.join(self.output_dir, "Detection_results.csv")
         crop_root = os.path.join(self.output_dir, "cropped_images")
         tray_root = os.path.join(self.output_dir, "plotted_trays")
+        good_dir = os.path.join(tray_root, "Good")        # NEW: mirrors the Moondream scripts
+        recheck_dir = os.path.join(tray_root, "Recheck")  # NEW
 
         os.makedirs(crop_root, exist_ok=True)
-        os.makedirs(tray_root, exist_ok=True)
+        os.makedirs(good_dir, exist_ok=True)
+        os.makedirs(recheck_dir, exist_ok=True)
 
         count_records = []
 
         for image_path in tqdm(self.image_paths, desc="Processing"):
-            
+
             try:
-                image = Image.open(image_path)
-                image.verify()
-                image = Image.open(image_path).convert("RGB")
+                # CHANGED: context managers so the fd is released even though
+                # verify() forces a full reopen.
+                with Image.open(image_path) as probe:
+                    probe.verify()
+                with Image.open(image_path) as src:
+                    image = src.convert("RGB")
             except Exception as e:
                 print(f"[WARNING] Skipping corrupted image: {image_path}")
                 print(f"Reason: {e}")
-                
+
                 with open(os.path.join(self.output_dir, "BadImages.txt"), "a") as f:
                     f.write(image_path + "\n")
                 continue
@@ -219,8 +318,10 @@ class Detection:
 
             for tray_tag, tray_img in tray_images:
 
-                current_image = tray_img.copy()
-                img_width, img_height = current_image.size
+                # CHANGED: working_image is progressively whited out across passes;
+                # crops are always taken from the untouched original `image`.
+                working_image = tray_img.copy()
+                img_width, img_height = working_image.size
                 img_area = img_width * img_height
 
                 base_name = os.path.splitext(os.path.basename(image_path))[0]
@@ -229,58 +330,35 @@ class Detection:
 
                 actual_count = self.extract_ground_truth(image_path)
 
-                all_filtered_boxes = []
+                all_kept_boxes = []
+                pass_log = []
 
-                # ---- Adaptive Threshold Loop ----
+                # ---- CHANGED: iterative whiteout cascade ----
+                # detect -> whiteout new boxes -> re-detect at a lower threshold.
+                # Boxes ACCUMULATE across passes instead of break-on-first-hit.
                 for thr in self.adaptive_thresholds():
+                    new_boxes = self._detect_pass(working_image, thr, img_area, all_kept_boxes)
+                    pass_log.append((thr, len(new_boxes)))
 
-                    inputs = self.processor(images=current_image,
-                                            text=self.dino_prompt,
-                                            return_tensors="pt").to(self.device)
+                    if new_boxes:
+                        all_kept_boxes.extend(new_boxes)
+                        working_image = self.whiteout_boxes(
+                            working_image, [b['box'] for b in new_boxes]
+                        )
 
-                    with torch.no_grad():
-                        outputs = self.model(**inputs)
-
-                    detection_results = self.processor.post_process_grounded_object_detection(
-                        outputs,
-                        inputs.input_ids,
-                        threshold=thr,
-                        text_threshold=0.2,
-                        target_sizes=[current_image.size[::-1]]
-                    )
-
-                    temp_boxes = []
-                    for result in detection_results:
-                        boxes = result["boxes"]
-                        scores = result["scores"]
-
-                        for box, score in zip(boxes, scores):
-                            x1, y1, x2, y2 = box.tolist()
-                            box_area = (x2 - x1) * (y2 - y1)
-                            size_ratio = box_area / img_area
-
-                            if size_ratio <= 0.05:
-                                temp_boxes.append({
-                                    'box': [x1, y1, x2, y2],
-                                    'score': score.item(),
-                                    'size_ratio': size_ratio
-                                })
-
-                    temp_boxes = self.filter_overlapping_boxes(temp_boxes)
-                    temp_boxes = self.filter_contained_boxes(temp_boxes)
-
-                    if temp_boxes:
-                        all_filtered_boxes = temp_boxes
-                        break
+                # ---- NEW: LLaVA completeness check on the fully masked tray ----
+                # DINO has nothing left to give; ask LLaVA if beetles remain.
+                # yes -> flag for human recheck; no -> trust the count and move on.
+                llava_flag = self.llava_more_beetles(working_image)
 
                 # ---- Sort in reading order ----
-                all_filtered_boxes = self.sort_boxes_reading_order(all_filtered_boxes)
+                all_kept_boxes = self.sort_boxes_reading_order(all_kept_boxes)
 
-                # ---- Save Crops ----
+                # ---- Save Crops (from the ORIGINAL image) ----
                 subfolder_path = os.path.join(crop_root, base_name)
                 os.makedirs(subfolder_path, exist_ok=True)
 
-                for idx, detection in enumerate(all_filtered_boxes, 1):
+                for idx, detection in enumerate(all_kept_boxes, 1):
                     x1, y1, x2, y2 = [int(coord) for coord in detection['box']]
                     cropped_image = image.crop((x1, y1, x2, y2))
                     cropped_image.save(
@@ -288,20 +366,23 @@ class Detection:
                         format='PNG'
                     )
 
-                # ---- Save tray with boxes ----
+                # ---- Save tray with boxes, routed by flag ----
                 draw_image = image.copy()
                 draw = ImageDraw.Draw(draw_image)
 
-                for detection in all_filtered_boxes:
+                for detection in all_kept_boxes:
                     draw.rectangle(detection['box'], outline="red", width=4)
 
-                draw_image.save(os.path.join(tray_root, f"{base_name}.png"))
+                target_dir = recheck_dir if llava_flag else good_dir
+                draw_image.save(os.path.join(target_dir, f"{base_name}.png"))
 
                 count_records.append({
                     "filename": base_name + ".png",
                     "actual": actual_count,
-                    "detected": len(all_filtered_boxes),
-                    "detections": [det['box'] for det in all_filtered_boxes]
+                    "detected": len(all_kept_boxes),
+                    "llava_says_more": llava_flag,        # NEW
+                    "pass_log": str(pass_log),            # NEW: (threshold, n_new) per pass
+                    "detections": [det['box'] for det in all_kept_boxes]
                 })
 
         count_df = pd.DataFrame(count_records)
@@ -319,6 +400,8 @@ if __name__ == "__main__":
     parser.add_argument("--image-dir", required=True, help="Directory containing input images")
     parser.add_argument("--output-dir", required=True, help="Directory to save detection results")
     parser.add_argument("--metadata-file", required=True, help="Path to CSV/JSON file with ground truth data")
+    parser.add_argument("--no-llava", action="store_true",
+                        help="Skip the LLaVA completeness check (saves ~14GB VRAM and the model download)")
 
     args = parser.parse_args()
 
@@ -332,7 +415,8 @@ if __name__ == "__main__":
     detector = Detection(
         image_paths=image_paths,
         output_dir=args.output_dir,
-        metadata_file=args.metadata_file
+        metadata_file=args.metadata_file,
+        use_llava=not args.no_llava
     )
 
     detector.detect_objects()

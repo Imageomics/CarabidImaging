@@ -27,12 +27,17 @@ def calculate_iou(box1, box2):
     area_box1 = (box1["x_max"] - box1["x_min"]) * (box1["y_max"] - box1["y_min"])
     area_box2 = (box2["x_max"] - box2["x_min"]) * (box2["y_max"] - box2["y_min"])
     union_area = float(area_box1 + area_box2 - intersection_area)
-    
+
     return intersection_area / union_area if union_area > 0 else 0.0
 
 
 def get_box_area(box):
     return (box["x_max"] - box["x_min"]) * (box["y_max"] - box["y_min"])
+
+
+def flat_name(image_dir, image_path):
+    rel = os.path.relpath(image_path, image_dir)
+    return rel.replace(os.sep, "__")
 
 
 def detect_scalebar(image, model):
@@ -73,29 +78,31 @@ def detect_scalebar(image, model):
     if not all_detected_boxes:
         return [], True
 
-    # 2. If we have exactly two boxes, check for a clean overlap first
-    if len(all_detected_boxes) == 2:
-        iou = calculate_iou(all_detected_boxes[0], all_detected_boxes[1])
-        if iou >= 0.6:
-            merged_box = {
-                "x_min": int((all_detected_boxes[0]["x_min"] + all_detected_boxes[1]["x_min"]) / 2),
-                "y_min": int((all_detected_boxes[0]["y_min"] + all_detected_boxes[1]["y_min"]) / 2),
-                "x_max": int((all_detected_boxes[0]["x_max"] + all_detected_boxes[1]["x_max"]) / 2),
-                "y_max": int((all_detected_boxes[0]["y_max"] + all_detected_boxes[1]["y_max"]) / 2),
-            }
-            return [merged_box], False
-
-    # 3. If overlap is low or we only have one box, filter out boxes > 10% area
+    # CHANGED: apply the area cap FIRST. Previously two prompts could agree on the
+    # same oversized hallucination and get merged straight into Good, bypassing
+    # the 10% rule entirely — agreement is not evidence of correctness here.
     valid_boxes = [box for box in all_detected_boxes if get_box_area(box) <= max_allowed_area]
 
     if not valid_boxes:
-        return [], True  # Both boxes were giant hallucinations, drop them all
+        return [], True  # every box was a giant hallucination, drop them all
 
-    # 4. If we filtered out a giant box and are left with exactly one good box, return it
+    # 2. Two surviving boxes that agree -> merge and accept
+    if len(valid_boxes) == 2:
+        iou = calculate_iou(valid_boxes[0], valid_boxes[1])
+        if iou >= 0.6:
+            merged_box = {
+                "x_min": int((valid_boxes[0]["x_min"] + valid_boxes[1]["x_min"]) / 2),
+                "y_min": int((valid_boxes[0]["y_min"] + valid_boxes[1]["y_min"]) / 2),
+                "x_max": int((valid_boxes[0]["x_max"] + valid_boxes[1]["x_max"]) / 2),
+                "y_max": int((valid_boxes[0]["y_max"] + valid_boxes[1]["y_max"]) / 2),
+            }
+            return [merged_box], False
+
+    # 3. Exactly one box survived the cap -> keep it, but flag (no corroboration)
     if len(valid_boxes) == 1:
-        return [valid_boxes[0]], True
+        return [valid_boxes[0], ], True
 
-    # 5. Fallback: Both boxes are under 10% but don't overlap, take the smaller one
+    # 4. Fallback: both under the cap but disagreeing, take the smaller one
     smallest_box = min(valid_boxes, key=get_box_area)
     return [smallest_box], True
 
@@ -121,7 +128,7 @@ def main():
         for file in files:
             if file.lower().endswith((".png", ".jpg", ".jpeg")):
                 all_images.append(os.path.join(root, file))
-    
+
     all_images.sort()
 
     total_images = len(all_images)
@@ -132,23 +139,25 @@ def main():
 
     print(f"🚀 Task {args.task_id}/{args.num_tasks}: Processing indices {start_idx} to {end_idx} ({len(my_chunk)} items)...")
 
+    fieldnames = ["image_name", "plotted_image", "num_scalebars", "scalebar_coords", "verify"]
+
     # Check if CSV exists so we know whether to write the header
     csv_exists = os.path.isfile(csv_path)
 
     for image_path in my_chunk:
-        base_name = os.path.basename(image_path)
-        
-        
-        expected_good_path = os.path.join(good_dir, base_name)
-        expected_recheck_path = os.path.join(recheck_dir, base_name)
-        
-        if os.path.exists(expected_good_path) or os.path.exists(expected_recheck_path):
+        # CHANGED: path-derived name — plain basename collided across
+        # subdirectories, which also made the resume-skip below skip real work.
+        base_name = flat_name(args.image_dir, image_path)
+
+        if (os.path.exists(os.path.join(good_dir, base_name)) or
+                os.path.exists(os.path.join(recheck_dir, base_name))):
             print(f"⏭️ Skipping {base_name} (Already processed)")
             continue
-        
 
         try:
-            image = Image.open(image_path).convert("RGB")
+            with Image.open(image_path) as src:
+                image = src.convert("RGB")
+
             coords_list, recheck_flag = detect_scalebar(image, model)
 
             if len(coords_list) != 1:
@@ -167,26 +176,25 @@ def main():
                 "plotted_image": plotted_image_path,
                 "num_scalebars": len(coords_list),
                 "scalebar_coords": str(coords_list),
-                "verify": recheck_flag
+                "verify": recheck_flag,
             }
 
             with open(csv_path, "a", newline="") as csvfile:
-                fieldnames = ["image_name", "plotted_image", "num_scalebars", "scalebar_coords", "verify"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                
+
                 # Only write the header once
                 if not csv_exists:
                     writer.writeheader()
-                    csv_exists = True 
-                    
+                    csv_exists = True
+
                 writer.writerow(row_data)
+                csvfile.flush()
+                os.fsync(csvfile.fileno())
 
         except Exception as e:
             print(f"[ERROR] {image_path}: {e}")
 
     print(f"✅ Task {args.task_id} complete. Log saved to {csv_path}")
-
-    
 
 
 if __name__ == "__main__":
