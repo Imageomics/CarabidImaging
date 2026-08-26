@@ -8,7 +8,8 @@
 #   → produces detections_merged.csv
 #
 # STEP 2 (SLURM array, ~2-4 hrs total depending on image sizes):
-#   Crops beetles in spatial order and renames with individualIDs
+#   Crops beetles in spatial order and links each crop to its individualID
+#   via a sidecar {tray}_ids.csv
 #   → output in Output-Finalized/Cropped/
 #
 # STEP 3 (SLURM array, fast — one scalebar box per tray):
@@ -25,6 +26,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ---- Temp SLURM job scripts get cleaned up on exit (success or failure) ----
+TMP_FILES=()
+cleanup() { rm -f "${TMP_FILES[@]}"; }
+trap cleanup EXIT
 
 # ---- Paths (edit if needed) ----
 DETECTIONS="/fs/ess/PAS2136/CarabidImaging/Output-Finalized/detections_all.csv"
@@ -87,6 +93,7 @@ if $CROP; then
     echo "============================================================"
 
     JOB_SCRIPT=$(mktemp /tmp/crop_job_XXXX.sh)
+    TMP_FILES+=("${JOB_SCRIPT}")
     cat > "${JOB_SCRIPT}" << SLURM_SCRIPT
 #!/bin/bash
 #SBATCH --account=${ACCOUNT}
@@ -125,7 +132,7 @@ SLURM_SCRIPT
     echo "Output will be written to: ${OUTPUT}"
     echo ""
     echo "Output subfolders:"
-    echo "  ${OUTPUT}/cropped/          — beetle crops named {individualID}.png"
+    echo "  ${OUTPUT}/cropped/          — beetle crops named {tray}_{N}.png, plus a {tray}_ids.csv linking each crop to its individualID"
     echo "  ${OUTPUT}/numbered_trays/   — full tray images with numbered boxes (QC)"
     echo "  ${OUTPUT}/review/           — trays where count still doesn't match"
     echo "  ${OUTPUT}/no_metadata/      — trays with no matching metadata"
@@ -141,6 +148,7 @@ if $SCALEBAR; then
     echo "============================================================"
 
     SB_JOB_SCRIPT=$(mktemp /tmp/scalebar_job_XXXX.sh)
+    TMP_FILES+=("${SB_JOB_SCRIPT}")
     cat > "${SB_JOB_SCRIPT}" << SLURM_SCRIPT
 #!/bin/bash
 #SBATCH --account=${ACCOUNT}

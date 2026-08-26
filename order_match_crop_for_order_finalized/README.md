@@ -7,7 +7,7 @@ This folder contains scripts that take finalized beetle detections and produce p
 The pipeline runs in two steps:
 
 1. **Merge annotations** — patches GDino detections with manual CVAT corrections for ~146 images, producing a clean `detections_merged.csv`.
-2. **Crop and link** — spatially orders bounding boxes within each tray, crops each beetle, and renames the crops with `individualID`s from the metadata CSVs.
+2. **Crop and link** — spatially orders bounding boxes within each tray, crops each beetle, and links each crop to an `individualID` from the metadata CSVs via a sidecar `_ids.csv` file.
 
 ## Scripts
 
@@ -33,7 +33,7 @@ For each tray in `detections_merged.csv` where `true_NumberOfBeetles == pred_Num
 1. Groups bounding boxes into rows using an iterative-merge algorithm with a dynamic height-based tolerance.
 2. Orders boxes top-to-bottom, left-to-right within each row.
 3. Crops each beetle from the original tray image.
-4. Looks up the ordered `individualID` list from metadata and saves each crop as `{tray}_{N}.png`.
+4. Looks up the ordered `individualID` list from metadata, saves each crop as `{tray}_{N}.png`, and writes a sidecar `{tray}_ids.csv` mapping position/filename → `individualID` (when the counts line up).
 5. Saves a numbered overview image for QC.
 
 Trays where counts don't match are saved to `review/` for manual inspection.
@@ -86,7 +86,7 @@ bash run_pipeline.sh --no-scalebar    # merge + beetle crop, skip scalebars
 
 ```
 Cropped/
-├── cropped/          # beetle crops named {tray}_{N}.png, in spatial order
+├── cropped/          # beetle crops named {tray}_{N}.png, in spatial order, plus {tray}_ids.csv linking each crop to its individualID
 ├── numbered_trays/   # full tray images with numbered bounding boxes (QC)
 ├── review/           # trays where pred count != true count
 ├── no_metadata/      # trays with no matching individualID metadata

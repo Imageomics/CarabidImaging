@@ -257,7 +257,10 @@ def crop_tray(
     """
     Crop beetles from image_path in spatial order.
     Naming follows the Output convention: {stem}_{N}.png (1-based position).
-    Returns number of crops saved.
+    If individual_ids is non-empty and its length matches the number of
+    ordered boxes, also writes a sidecar {stem}_ids.csv mapping each crop's
+    position and filename to its individualID.
+    Returns the number of crops actually saved.
     """
     ordered_boxes = spatial_order(boxes, tolerance_ratio)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -266,6 +269,12 @@ def crop_tray(
     # (e.g. Species-and-Species_Tray1_1.png) instead of the raw image stem.
     file_stem = output_dir.name
 
+    # Caller already warns on count mismatch ([COUNT MISMATCH]); here we just
+    # skip writing the sidecar mapping if positions can't be aligned 1:1.
+    ids_match = bool(individual_ids) and len(individual_ids) == len(ordered_boxes)
+
+    n_saved = 0
+    id_rows = []
     with Image.open(image_path) as img:
         img_w, img_h = img.size
 
@@ -281,8 +290,18 @@ def crop_tray(
             crop = img.crop((x1, y1, x2, y2))
             fname = f"{file_stem}_{i + 1}.png"
             crop.save(output_dir / fname)
+            n_saved += 1
+            if ids_match:
+                id_rows.append((i + 1, fname, individual_ids[i]))
 
-    return len(ordered_boxes)
+    if id_rows:
+        ids_csv = output_dir / f"{file_stem}_ids.csv"
+        with open(ids_csv, "w", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(["position", "filename", "individualID"])
+            writer.writerows(id_rows)
+
+    return n_saved
 
 
 def draw_numbered_tray(
@@ -478,7 +497,7 @@ def run(args):
                 )
                 continue
 
-            # Crop and save with individualID filenames
+            # Crop and write a sidecar {stem}_ids.csv linking each crop to its individualID
             tray_out = output_dir / "cropped" / out_stem
             n_saved = crop_tray(image_path, boxes, ind_ids, tray_out, effective_tolerance)
 
@@ -488,10 +507,10 @@ def run(args):
                 output_dir / "numbered_trays" / f"{out_stem}_numbered.png"
             )
 
-            # Warn if more crops than IDs (or vice versa)
-            if len(boxes) != len(ind_ids):
+            # Warn if crops saved don't line up 1:1 with known individualIDs
+            if n_saved != len(ind_ids):
                 print(
-                    f"  [COUNT MISMATCH] {out_stem}: {len(boxes)} boxes but "
+                    f"  [COUNT MISMATCH] {out_stem}: {n_saved} crops saved but "
                     f"{len(ind_ids)} individualIDs — check metadata"
                 )
 
