@@ -29,7 +29,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---- Temp SLURM job scripts get cleaned up on exit (success or failure) ----
 TMP_FILES=()
-cleanup() { rm -f "${TMP_FILES[@]}"; }
+cleanup() {
+    if ((${#TMP_FILES[@]})); then
+        rm -f "${TMP_FILES[@]}"
+    fi
+}
 trap cleanup EXIT
 
 # ---- Paths (edit if needed) ----
@@ -132,7 +136,7 @@ SLURM_SCRIPT
     echo "Output will be written to: ${OUTPUT}"
     echo ""
     echo "Output subfolders:"
-    echo "  ${OUTPUT}/cropped/          — beetle crops named {tray}_{N}.png, plus a {tray}_ids.csv linking each crop to its individualID"
+    echo "  ${OUTPUT}/cropped/          — per-tray folders {tray}/ containing {tray}_{N}.png crops and a {tray}_ids.csv linking each crop to its individualID"
     echo "  ${OUTPUT}/numbered_trays/   — full tray images with numbered boxes (QC)"
     echo "  ${OUTPUT}/review/           — trays where count still doesn't match"
     echo "  ${OUTPUT}/no_metadata/      — trays with no matching metadata"

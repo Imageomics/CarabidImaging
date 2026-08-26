@@ -257,9 +257,11 @@ def crop_tray(
     """
     Crop beetles from image_path in spatial order.
     Naming follows the Output convention: {stem}_{N}.png (1-based position).
-    If individual_ids is non-empty and its length matches the number of
-    ordered boxes, also writes a sidecar {stem}_ids.csv mapping each crop's
-    position and filename to its individualID.
+    If individual_ids is non-empty, its length matches the number of ordered
+    boxes, AND every box was successfully saved (none skipped as out-of-bounds),
+    also writes a sidecar {stem}_ids.csv mapping each crop's position and
+    filename to its individualID. Any skip makes the mapping unreliable, so
+    the sidecar is omitted rather than written partial.
     Returns the number of crops actually saved.
     """
     ordered_boxes = spatial_order(boxes, tolerance_ratio)
@@ -294,7 +296,7 @@ def crop_tray(
             if ids_match:
                 id_rows.append((i + 1, fname, individual_ids[i]))
 
-    if id_rows:
+    if ids_match and n_saved == len(individual_ids):
         ids_csv = output_dir / f"{file_stem}_ids.csv"
         with open(ids_csv, "w", newline="") as fh:
             writer = csv.writer(fh)

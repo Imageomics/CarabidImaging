@@ -49,8 +49,8 @@ def parse_cvat_xml(
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
-    annotations: dict[str, list[tuple]] = {}
-    dimensions: dict[str, tuple] = {}
+    annotations: dict[str, list[tuple[float, float, float, float]]] = {}
+    dimensions: dict[str, tuple[int, int]] = {}
 
     for img_elem in root.iter("image"):
         raw_name = img_elem.attrib["name"]

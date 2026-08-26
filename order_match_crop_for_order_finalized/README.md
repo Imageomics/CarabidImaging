@@ -86,7 +86,7 @@ bash run_pipeline.sh --no-scalebar    # merge + beetle crop, skip scalebars
 
 ```
 Cropped/
-├── cropped/          # beetle crops named {tray}_{N}.png, in spatial order, plus {tray}_ids.csv linking each crop to its individualID
+├── cropped/          # per-tray folders: cropped/{tray}/{tray}_{N}.png (spatial order) + cropped/{tray}/{tray}_ids.csv linking each crop to its individualID
 ├── numbered_trays/   # full tray images with numbered bounding boxes (QC)
 ├── review/           # trays where pred count != true count
 ├── no_metadata/      # trays with no matching individualID metadata
