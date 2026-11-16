@@ -37,17 +37,20 @@ from pathlib import Path
 # Parse CVAT XML → {name: [(xtl, ytl, xbr, ybr), ...], ...}
 # ---------------------------------------------------------------------------
 
-def parse_cvat_xml(xml_path: Path) -> dict[str, list[tuple]]:
+def parse_cvat_xml(
+    xml_path: Path,
+) -> tuple[dict[str, list[tuple[float, float, float, float]]], dict[str, tuple[int, int]]]:
     """
-    Return a dict mapping image name → list of (xtl, ytl, xbr, ybr) float tuples.
+    Return a 2-tuple of:
+      - annotations: {name: [(xtl, ytl, xbr, ybr), ...]}
+      - dimensions:  {name: (width, height)}
     The name has any trailing CVAT _N suffix (e.g. _1.png → .png) stripped.
-    Also returns image dimensions: {name: (width, height)}.
     """
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
-    annotations: dict[str, list[tuple]] = {}
-    dimensions: dict[str, tuple] = {}
+    annotations: dict[str, list[tuple[float, float, float, float]]] = {}
+    dimensions: dict[str, tuple[int, int]] = {}
 
     for img_elem in root.iter("image"):
         raw_name = img_elem.attrib["name"]
@@ -221,10 +224,17 @@ def merge(detections_csv: Path, xml_path: Path, output_csv: Path, dry_run: bool 
                 img_height = cvat_dims[cvat_name][1]
                 if "-and-" in image_id:
                     tray1_boxes, tray2_boxes = split_and_boxes(boxes_all, img_height)
-                    selected_boxes = tray1_boxes if tray_id.startswith("TRAY1") else tray2_boxes
+                    if tray_id.startswith("TRAY1"):
+                        selected_boxes = tray1_boxes
+                    elif tray_id.startswith("TRAY2"):
+                        selected_boxes = tray2_boxes
+                    else:
+                        # Mirrors the real merge path: unexpected trayID on an
+                        # "and" image is skipped, row is left unchanged.
+                        selected_boxes = None
                 else:
                     selected_boxes = boxes_all
-                sim_pred = str(len(selected_boxes))
+                sim_pred = str(len(selected_boxes)) if selected_boxes is not None else row["pred_NumberOfBeetles"]
             else:
                 sim_pred = row["pred_NumberOfBeetles"]
             sim_rows.append((row["true_NumberOfBeetles"], sim_pred))
