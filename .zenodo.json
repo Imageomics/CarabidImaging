@@ -43,9 +43,9 @@
         "batch imaging"
     ],
     "title": "CarabidImaging",
-    "version": "<release version>",
+    "version": "1.0.0",
     "license": "MIT",
-    "publication_date": "YYYY-MM-DD",
+    "publication_date": "2026-11-19",
     "grants": [
         {
             "id": "021nxhr62::2118240"

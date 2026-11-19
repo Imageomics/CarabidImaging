@@ -18,12 +18,12 @@ authors:
   given-names: "Elizabeth G."
   orcid: "https://orcid.org/0000-0003-0846-2413"
 cff-version: 1.2.0
-date-released: "YYYY-MM-DD"
+date-released: "2026-11-19"
 identifiers:
-  - description: "The GitHub release URL of tag <version>."
+  - description: "The GitHub release URL of tag v1.0.0."
     type: url
-    value: "https://github.com/Imageomics/CarabidImaging/releases/tag/<tag-name>"
-  - description: "The GitHub URL of the commit tagged with <tag-name>."
+    value: "https://github.com/Imageomics/CarabidImaging/releases/tag/v1.0.0"
+  - description: "The GitHub URL of the commit tagged with v1.0.0."
     type: url
     value: "https://github.com/Imageomics/CarabidImaging/tree/<commit-hash>" # Update on release
 keywords:
@@ -39,6 +39,6 @@ license: MIT
 message: "If you find this software helpful in your research, please cite both the software and our paper."
 repository-code: "https://github.com/Imageomics/CarabidImaging"
 title: "CarabidImaging"
-version: <release version>
+version: 1.0.0
 #doi: <version-agnostic DOI from Zenodo>
 type: software
