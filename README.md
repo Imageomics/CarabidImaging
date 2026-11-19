@@ -1,4 +1,4 @@
-# NEON Ground Beetle Digitization and Metadata Integration Workflow
+# NEON Ground Beetle Digitization and Metadata Integration Workflow [![DOI](https://zenodo.org/badge/988039220.svg)](https://doi.org/10.5281/zenodo.24379618)
 
 ## Overview
 
