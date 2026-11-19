@@ -48,6 +48,22 @@ CarabidImaging/
 ├── SmallBeetles/
 │   ├── CheckBeetleCounts.R
 │   └── copyImagesRename.sh
+├── detection-pipeline/
+│   ├── README.md
+│   ├── detection_beetles.py
+│   ├── detection_colorpicker.py
+│   ├── detection_scalebar.py
+│   └── requirements.txt
+├── docs/
+│   ├── data/
+│   ├── workflow/
+│   └── data-code-requirements.md
+├── order-match-crop_pipeline/
+│   ├── README.md
+│   ├── crop_and_link.py
+│   ├── crop_scalebars.py
+│   ├── merge_annotations.py
+│   └── run_pipeline.sh
 ├── rclone.sh
 ├── rclone_sendFilesToStudents.sh
 ├── runAllTrayProcesses.sh
@@ -72,7 +88,7 @@ Automated synchronization of data between Google Drive and the computing environ
 - `rclone_sendFilesToStudents.sh`
   - This script automates the rclone copying of files that need to be individually checked by students from OSC to the appropriate Google Drive subfolders. This script should only be run after manually checking that all Google Sheets in the `Checked` subfolders of `NEONIndividualLinkageChecks` have been downloaded as xlsx files and reuploaded to the drive. These files can then be moved over to OSC with the `rclone.sh` script detailed above, and only then should a list of desired files be derived from the `CheckBeetleCounts.R` scripts below.
 
-Remaining workflow description is provided in the [docs/workflow/ directory](docs/workflow/). The prequisites for data and code are described in [`docs/data-code-requirements`](docs/data-code-requirements.md).
+Remaining workflow description is provided in the [docs/workflow/ directory](docs/workflow/). The prequisites for data and code are described in [`docs/data-code-requirements`](docs/data-code-requirements.md). See the [detection-pipeline](detection-pipeline/) and [order-match-crop_pipeline](order-match-crop_pipeline/) directories for more information on the BioREPO Detection and Order-Match-Crop Pipelines, respectively
 
 ---
 
