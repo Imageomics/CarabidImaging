@@ -20,10 +20,10 @@ authors:
 cff-version: 1.2.0
 date-released: "2026-11-19"
 identifiers:
-  - description: "The GitHub release URL of tag v1.0.0."
+  - description: "The GitHub release URL of tag v1.0.1."
     type: url
-    value: "https://github.com/Imageomics/CarabidImaging/releases/tag/v1.0.0"
-  - description: "The GitHub URL of the commit tagged with v1.0.0."
+    value: "https://github.com/Imageomics/CarabidImaging/releases/tag/v1.0.1"
+  - description: "The GitHub URL of the commit tagged with v1.0.1."
     type: url
     value: "https://github.com/Imageomics/CarabidImaging/tree/<commit-hash>" # Update on release
 keywords:
@@ -39,6 +39,6 @@ license: MIT
 message: "If you find this software helpful in your research, please cite both the software and our paper."
 repository-code: "https://github.com/Imageomics/CarabidImaging"
 title: "CarabidImaging"
-version: 1.0.0
-#doi: <version-agnostic DOI from Zenodo>
+version: 1.0.1
+doi: 10.5281/zenodo.24379618
 type: software
