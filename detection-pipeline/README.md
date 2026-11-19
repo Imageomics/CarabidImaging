@@ -32,9 +32,8 @@ Every module is **zero-shot** (no training/fine-tuning required), is built for
 ## ✨ Key Features
 
 - **Zero-shot specimen detection** with `IDEA-Research/grounding-dino-base` and an
-  **adaptive confidence sweep** (0.30 → 0.10) that stops at the first threshold
-  yielding valid boxes — maximizing recall on faint specimens without flooding
-  dense trays with noise.
+  **iterative confidence sweep** (0.30 → 0.10). Each pass accumulates new boxes,
+  masks them, and continues at lower thresholds to recover faint specimens.
 - **Split-tray handling.** Images whose filename contains `-and-` are treated as
   two stacked trays; each half is processed independently by masking the other
   half to the ImageNet mean.
@@ -137,9 +136,14 @@ the results — they do not stop processing.
 Detects and crops individual specimens using Grounding DINO.
 
 **Pipeline per image:** load & verify → split trays if `-and-` in filename →
-adaptive threshold sweep (break on first hit) → IoU + containment filtering →
-size filter (≤ 5 % area) → reading-order sort → save crops, plotted tray, and
-count record.
+iterative threshold sweep (each pass masks the boxes found so far and re-detects
+at a lower threshold) → size filter (≤ 5 % area) → IoU + containment filtering
+→ optional LLaVA completeness check → reading-order sort → save crops, plotted
+tray (routed to `Good/` or `Recheck/`), and count record.
+
+Trays with zero detections, or where LLaVA reports a beetle left unmasked, are
+routed to `Recheck/`. Results are appended to the CSV one tray at a time, so
+rerunning with the same `--output-dir` resumes where the previous run stopped.
 
 ```bash
 python detection_beetles.py \
@@ -153,11 +157,11 @@ python detection_beetles.py \
 | `--image-dir` | ✅ | Root directory of tray images (recursive) |
 | `--output-dir` | ✅ | Destination for crops, plots, and CSV |
 | `--metadata-file` | ✅ | Ground-truth CSV/JSON (`imageID`, `NumberOfBeetlesInTray`) |
+| `--no-llava` | | Skip the LLaVA completeness check |
 
-> ℹ️ A LLaVA-Next model (`llava-v1.6-mistral-7b-hf`) is loaded for optional
-> conditional-generation use but is **not invoked in the current detection loop**.
-> If you don't need it, commenting out `setup_llava_model()` saves considerable
-> GPU memory.
+> ℹ️ By default, a LLaVA-Next model (`llava-v1.6-mistral-7b-hf`) checks each
+> masked tray for missed beetles. Pass `--no-llava` to skip this check and avoid
+> the additional model download and GPU-memory use.
 
 ---
 
@@ -168,7 +172,7 @@ Locates the color-calibration palette with Moondream, querying two prompts
 
 **Decision logic:** both prompts agree (IoU ≥ 0.75) → merge boxes, mark **Good**.
 Otherwise → keep the smaller box and flag for **Recheck**. Images under a
-`SmallBeetles` path/name are skipped.
+`SmallBeetles` path/name are skipped. **Resumable**, same as the scalebar module.
 
 ```bash
 python detection_colorpicker.py \
@@ -220,15 +224,22 @@ Arguments are identical to the colorpicker module.
 ### Beetle detection
 ```
 <output-dir>/
-├── Detection_results.csv        # filename, actual, detected, detections (boxes)
+├── Detection_results.csv        # one row per tray, appended as each tray finishes
 ├── BadImages.txt                # corrupted/unreadable images that were skipped
 ├── cropped_images/
 │   └── <tray_name>/
 │       ├── <tray_name>_1.png     # crops in reading order
 │       └── <tray_name>_2.png
-└── plotted_trays/
-    └── <tray_name>.png           # full tray with red bounding boxes
+└── plotted_trays/                # full tray with red bounding boxes
+    ├── Good/
+    │   └── <tray_name>.png
+    └── Recheck/                  # zero detections or LLaVA flagged missed beetles
+        └── <tray_name>.png
 ```
+
+**CSV columns (beetle module):** `image_path`, `filename`, `actual`, `detected`,
+`llava_says_more`, `verify` (`True` = routed to `Recheck/`), `pass_log`
+(threshold and new boxes per pass), `detections` (boxes).
 
 ### Colorpicker & scalebar
 ```
@@ -279,8 +290,10 @@ a run (adding/removing files mid-run shifts the chunk boundaries).
 - All detectors are zero-shot; there is **no training step**.
 - Beetle detection runs locally on GPU; colorpicker and scalebar call the
   **Moondream cloud API** and therefore require network access from compute nodes.
-- Outputs are additive and safe to re-run; the scalebar module is fully
-  resumable, and Moondream CSVs are written incrementally so partial runs are
-  preserved.
+- All three modules write their CSVs incrementally and are resumable. The beetle
+  module skips trays already logged in `Detection_results.csv`; the Moondream
+  modules skip images already present in `Plotted_Good/` or `Plotted_Recheck/`.
+  A plotted image is only kept once its CSV row has been written, so a failed
+  write is retried on the next run.
 
 ---

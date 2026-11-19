@@ -169,7 +169,6 @@ def main():
 
             target_dir = recheck_dir if recheck_flag else good_dir
             plotted_image_path = os.path.join(target_dir, base_name)
-            image.save(plotted_image_path)
 
             row_data = {
                 "image_name": image_path,
@@ -179,17 +178,24 @@ def main():
                 "verify": recheck_flag,
             }
 
-            with open(csv_path, "a", newline="") as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-                # Only write the header once
-                if not csv_exists:
-                    writer.writeheader()
-                    csv_exists = True
-
-                writer.writerow(row_data)
-                csvfile.flush()
-                os.fsync(csvfile.fileno())
+            # The plotted image is the resume marker. If saving it or logging the
+            # CSV row fails, remove it so the next run retries this image instead
+            # of skipping it with no logged result.
+            try:
+                image.save(plotted_image_path)
+                with open(csv_path, "a", newline="") as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    # Only write the header once
+                    if not csv_exists:
+                        writer.writeheader()
+                        csv_exists = True
+                    writer.writerow(row_data)
+                    csvfile.flush()
+                    os.fsync(csvfile.fileno())
+            except Exception:
+                if os.path.exists(plotted_image_path):
+                    os.remove(plotted_image_path)
+                raise
 
         except Exception as e:
             print(f"[ERROR] {image_path}: {e}")

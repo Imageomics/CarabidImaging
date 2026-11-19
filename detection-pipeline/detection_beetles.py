@@ -2,6 +2,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import os
+import csv
 import torch
 import argparse
 import pandas as pd
@@ -273,13 +274,55 @@ class Detection:
                 if self.compute_iou(cand['box'], kept['box']) > 0.4:
                     duplicate = True
                     break
-                if self.compute_containment_ratio(cand['box'], kept['box']) > 0.6:
+                # containment is directional: check both a candidate nested inside a
+                # kept box and a candidate that encloses a kept box
+                if (
+                    self.compute_containment_ratio(cand['box'], kept['box']) > 0.6
+                    or self.compute_containment_ratio(kept['box'], cand['box']) > 0.6
+                ):
                     duplicate = True
                     break
             if not duplicate:
                 new_boxes.append(cand)
 
         return new_boxes
+
+    # ---------------- Incremental logging / resume ----------------
+    CSV_FIELDS = ["image_path", "filename", "actual", "detected",
+                  "llava_says_more", "verify", "pass_log", "detections"]
+
+    @staticmethod
+    def _tray_base_name(image_path, tray_tag):
+        base_name = os.path.splitext(os.path.basename(image_path))[0]
+        if tray_tag != "single":
+            base_name = f"{base_name}_{tray_tag}"
+        return base_name
+
+    def _expected_plot_names(self, image_path):
+        tags = ["tray1", "tray2"] if "-and-" in os.path.basename(image_path) else ["single"]
+        return [f"{self._tray_base_name(image_path, t)}.png" for t in tags]
+
+    def _load_done(self, csv_path):
+        if not os.path.isfile(csv_path):
+            return set()
+        with open(csv_path, newline="") as f:
+            reader = csv.DictReader(f)
+            if not reader.fieldnames or "image_path" not in reader.fieldnames:
+                raise ValueError(
+                    f"{csv_path} was written by an older version of this script and "
+                    "cannot be resumed; move it aside or choose a new --output-dir."
+                )
+            return {(row["image_path"], row["filename"]) for row in reader}
+
+    def _append_record(self, csv_path, row):
+        write_header = not os.path.isfile(csv_path) or os.path.getsize(csv_path) == 0
+        with open(csv_path, "a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=self.CSV_FIELDS)
+            if write_header:
+                writer.writeheader()
+            writer.writerow(row)
+            f.flush()
+            os.fsync(f.fileno())
 
     # ---------------- Detection ----------------
     def detect_objects(self):
@@ -295,9 +338,16 @@ class Detection:
         os.makedirs(good_dir, exist_ok=True)
         os.makedirs(recheck_dir, exist_ok=True)
 
-        count_records = []
+        # resume: trays already logged in the CSV are skipped
+        done = self._load_done(csv_path)
+        if done:
+            print(f"Resuming: {len(done)} trays already logged in {csv_path}")
 
         for image_path in tqdm(self.image_paths, desc="Processing"):
+
+            expected = self._expected_plot_names(image_path)
+            if all((image_path, name) in done for name in expected):
+                continue
 
             try:
                 # CHANGED: context managers so the fd is released even though
@@ -324,9 +374,9 @@ class Detection:
                 img_width, img_height = working_image.size
                 img_area = img_width * img_height
 
-                base_name = os.path.splitext(os.path.basename(image_path))[0]
-                if tray_tag != "single":
-                    base_name = f"{base_name}_{tray_tag}"
+                base_name = self._tray_base_name(image_path, tray_tag)
+                if (image_path, f"{base_name}.png") in done:
+                    continue  # this half of a split tray was logged before a crash
 
                 actual_count = self.extract_ground_truth(image_path)
 
@@ -373,20 +423,32 @@ class Detection:
                 for detection in all_kept_boxes:
                     draw.rectangle(detection['box'], outline="red", width=4)
 
-                target_dir = recheck_dir if llava_flag else good_dir
-                draw_image.save(os.path.join(target_dir, f"{base_name}.png"))
+                # zero detections is ambiguous, so it always goes to Recheck
+                needs_recheck = llava_flag or not all_kept_boxes
+                target_dir = recheck_dir if needs_recheck else good_dir
+                other_dir = good_dir if needs_recheck else recheck_dir
+                plot_name = f"{base_name}.png"
 
-                count_records.append({
-                    "filename": base_name + ".png",
+                # a rerun of a tray interrupted before logging may route differently;
+                # drop any stale copy so the tray never appears in both folders
+                stale = os.path.join(other_dir, plot_name)
+                if os.path.exists(stale):
+                    os.remove(stale)
+                draw_image.save(os.path.join(target_dir, plot_name))
+
+                # the CSV row is the resume marker, so it is written last, per tray,
+                # and flushed to disk before moving on
+                self._append_record(csv_path, {
+                    "image_path": image_path,
+                    "filename": plot_name,
                     "actual": actual_count,
                     "detected": len(all_kept_boxes),
-                    "llava_says_more": llava_flag,        # NEW
-                    "pass_log": str(pass_log),            # NEW: (threshold, n_new) per pass
-                    "detections": [det['box'] for det in all_kept_boxes]
+                    "llava_says_more": llava_flag,
+                    "verify": needs_recheck,
+                    "pass_log": str(pass_log),            # (threshold, n_new) per pass
+                    "detections": str([det['box'] for det in all_kept_boxes])
                 })
-
-        count_df = pd.DataFrame(count_records)
-        count_df.to_csv(csv_path, index=False)
+                done.add((image_path, plot_name))
 
         print("\nDetection statistics saved to:", csv_path)
         print("Detection complete!")
